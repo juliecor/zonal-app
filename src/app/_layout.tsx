@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -9,10 +9,9 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { LoginScreen } from "@/components/LoginScreen";
 import { SERIF, Z } from "@/theme/zonal";
 
-// Gate the app behind the login screen on launch (like the website), with a guest skip.
+// Hard gate: the app is only reachable after signing in (like the website).
 function Gate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  const [guest, setGuest] = useState(false);
 
   if (loading) {
     return (
@@ -24,7 +23,7 @@ function Gate({ children }: { children: ReactNode }) {
       </View>
     );
   }
-  if (!user && !guest) return <LoginScreen onSkip={() => setGuest(true)} />;
+  if (!user) return <LoginScreen />;
   return <>{children}</>;
 }
 
