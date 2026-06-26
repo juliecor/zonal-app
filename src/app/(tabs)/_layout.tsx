@@ -30,10 +30,6 @@ export default function TabsLayout() {
         name="browse"
         options={{ title: "Browse", tabBarIcon: ({ color, size }) => <Ionicons name="layers" size={size} color={color} /> }}
       />
-      <Tabs.Screen
-        name="tool"
-        options={{ title: "Tool", tabBarIcon: ({ color, size }) => <Ionicons name="globe-outline" size={size} color={color} /> }}
-      />
     </Tabs>
   );
 }

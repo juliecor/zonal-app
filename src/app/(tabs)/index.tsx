@@ -22,6 +22,15 @@ import { peso, pesoK, SERIF, titleCase, Z } from "@/theme/zonal";
 
 const KEY = process.env.EXPO_PUBLIC_MAPS_KEY || "";
 
+const HAZARD_LAYERS = [
+  { key: "flood", label: "Flood", color: "#0ea5e9" },
+  { key: "landslide", label: "Landslide", color: "#92400e" },
+  { key: "stormsurge", label: "Storm surge", color: "#6d28d9" },
+  { key: "faults", label: "Fault lines", color: "#b91c1c" },
+  { key: "liquefaction", label: "Liquefaction", color: "#d97706" },
+  { key: "tsunami", label: "Tsunami", color: "#0891b2" },
+];
+
 interface Sheet {
   lat: number; lon: number; name: string; address: string;
   value: number | null; code: string | null;
@@ -33,6 +42,8 @@ export default function MapScreen() {
   const [q, setQ] = useState("");
   const [sugs, setSugs] = useState<Suggestion[]>([]);
   const [mapType, setMapType] = useState<"roadmap" | "hybrid">("roadmap");
+  const [layers, setLayers] = useState<Record<string, boolean>>({});
+  const [layersOpen, setLayersOpen] = useState(false);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [lu, setLu] = useState<Group>("residential");
   const [haz, setHaz] = useState<HazardProfile | null>(null);
@@ -171,6 +182,13 @@ export default function MapScreen() {
     inject(`window.ZV.setType(${JSON.stringify(t)})`);
   }
 
+  function toggleLayer(k: string) {
+    const on = !layers[k];
+    setLayers((s) => ({ ...s, [k]: on }));
+    inject(`window.ZV.setLayer(${JSON.stringify(k)}, ${on})`);
+  }
+  const activeLayers = Object.values(layers).filter(Boolean).length;
+
   function openReport() {
     if (!sheet) return;
     router.push({ pathname: "/property", params: { lat: String(sheet.lat), lon: String(sheet.lon), name: sheet.name } } as any);
@@ -232,12 +250,36 @@ export default function MapScreen() {
             </Pressable>
           ))}
         </View>
-        {!sheet && (
-          <View style={st.hint} pointerEvents="none">
-            <Ionicons name="hand-left-outline" size={12} color="#fff" />
-            <Text style={st.hintT}>Tap any establishment to see its zonal value</Text>
-          </View>
-        )}
+        <View style={st.hazWrap} pointerEvents="box-none">
+          <Pressable onPress={() => setLayersOpen((o) => !o)} style={st.hazBtn}>
+            <Ionicons name="layers-outline" size={14} color={Z.navy} />
+            <Text style={st.hazBtnT}>Hazards{activeLayers ? ` · ${activeLayers}` : ""}</Text>
+            <Ionicons name={layersOpen ? "chevron-up" : "chevron-down"} size={13} color={Z.slate} />
+          </Pressable>
+          {layersOpen && (
+            <View style={st.hazPanel}>
+              <Text style={st.hazPanelH}>SHOW HAZARD OVERLAYS</Text>
+              {HAZARD_LAYERS.map((h) => {
+                const on = !!layers[h.key];
+                return (
+                  <Pressable key={h.key} style={st.hazRow} onPress={() => toggleLayer(h.key)}>
+                    <View style={[st.hazSw, on && { backgroundColor: h.color, borderColor: h.color }]}>
+                      {on && <Ionicons name="checkmark" size={11} color="#fff" />}
+                    </View>
+                    <View style={[st.hazDot, { backgroundColor: h.color }]} />
+                    <Text style={st.hazRowT}>{h.label}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+          {!sheet && !layersOpen && (
+            <View style={st.hint}>
+              <Ionicons name="hand-left-outline" size={12} color="#fff" />
+              <Text style={st.hintT}>Tap any establishment to see its value</Text>
+            </View>
+          )}
+        </View>
       </SafeAreaView>
 
       {busy && <View style={st.busy} pointerEvents="none"><ActivityIndicator color={Z.gold} /></View>}
@@ -329,8 +371,18 @@ const st = StyleSheet.create({
   segT: { fontSize: 11.5, fontWeight: "700", color: Z.slate },
   segTOn: { color: "#fff" },
 
-  hint: { alignSelf: "center", marginTop: 9, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(16,26,48,0.82)", borderRadius: 100, paddingHorizontal: 12, paddingVertical: 6 },
+  hint: { marginTop: 9, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(16,26,48,0.82)", borderRadius: 100, paddingHorizontal: 12, paddingVertical: 6 },
   hintT: { color: "#fff", fontSize: 10.5, fontWeight: "600" },
+
+  hazWrap: { alignSelf: "center", marginTop: 9, alignItems: "center" },
+  hazBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 100, paddingHorizontal: 13, paddingVertical: 7, shadowColor: "#0c1430", shadowOpacity: 0.16, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  hazBtnT: { fontSize: 11.5, fontWeight: "700", color: Z.navy },
+  hazPanel: { marginTop: 8, backgroundColor: "#fff", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10, width: 212, borderWidth: 1, borderColor: Z.line, shadowColor: "#0c1430", shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
+  hazPanelH: { fontSize: 8.5, letterSpacing: 1.2, color: Z.slate, fontWeight: "800", marginBottom: 4, paddingHorizontal: 4 },
+  hazRow: { flexDirection: "row", alignItems: "center", gap: 9, paddingVertical: 7, paddingHorizontal: 4 },
+  hazSw: { width: 18, height: 18, borderRadius: 6, borderWidth: 1.5, borderColor: Z.line, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" },
+  hazDot: { width: 8, height: 8, borderRadius: 4 },
+  hazRowT: { fontSize: 12.5, color: Z.inkSoft, fontWeight: "600" },
 
   busy: { position: "absolute", top: "46%", left: 0, right: 0, alignItems: "center" },
 

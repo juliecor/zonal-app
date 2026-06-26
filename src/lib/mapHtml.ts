@@ -19,7 +19,7 @@ export function mapHtml(key: string): string {
   .tag.sel::after{background:#c9a84c;border-color:transparent}
 </style></head><body><div id="map"></div>
 <script>
-  var map, overlay, PINS=[];
+  var map, overlay, PINS=[], LAYERS={};
   function post(o){ try{ if(window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage==='function') window.ReactNativeWebView.postMessage(JSON.stringify(o)); }catch(e){} }
   function initMap(){
     map=new google.maps.Map(document.getElementById('map'),{
@@ -54,7 +54,33 @@ export function mapHtml(key: string): string {
   window.ZV={
     setPins:function(arr){ PINS=Array.isArray(arr)?arr:[]; render(); },
     center:function(lat,lon,zoom){ if(!map) return; map.panTo({lat:lat,lng:lon}); if(zoom) map.setZoom(zoom); },
-    setType:function(t){ if(map) map.setMapTypeId(t); }
+    setType:function(t){ if(map) map.setMapTypeId(t); },
+    setLayer:function(name,on){
+      if(!map) return;
+      var TILE={flood:'flood-tile',landslide:'landslide-tile',stormsurge:'stormsurge-tile'};
+      var VEC={faults:'/api/faults',liquefaction:'/hazard/liquefaction_vec.geojson',tsunami:'/hazard/tsunami_vec.geojson'};
+      if(TILE[name]){
+        if(on){
+          if(LAYERS[name]) return;
+          var t=new google.maps.ImageMapType({ tileSize:new google.maps.Size(256,256), opacity:0.55,
+            getTileUrl:function(c,z){ return 'https://zonalvalue.ph/api/'+TILE[name]+'/'+z+'/'+c.x+'/'+c.y; } });
+          map.overlayMapTypes.push(t); LAYERS[name]={obj:t,raster:true};
+        } else if(LAYERS[name]){
+          var arr=map.overlayMapTypes;
+          for(var i=0;i<arr.getLength();i++){ if(arr.getAt(i)===LAYERS[name].obj){ arr.removeAt(i); break; } }
+          delete LAYERS[name];
+        }
+      } else if(VEC[name]){
+        if(on){
+          if(LAYERS[name]) return;
+          var dl=new google.maps.Data();
+          dl.loadGeoJson('https://zonalvalue.ph'+VEC[name]);
+          var col=name==='liquefaction'?'#d97706':(name==='tsunami'?'#0891b2':'#b91c1c');
+          dl.setStyle({ fillColor:col, fillOpacity:0.28, strokeColor:col, strokeWeight:name==='faults'?2.5:1 });
+          dl.setMap(map); LAYERS[name]={obj:dl};
+        } else if(LAYERS[name]){ LAYERS[name].obj.setMap(null); delete LAYERS[name]; }
+      }
+    }
   };
 </script>
 <script async defer src="https://maps.googleapis.com/maps/api/js?key=${key}&callback=initMap"></script>
