@@ -13,7 +13,7 @@ export function ValueCard({
       Animated.timing(x, { toValue: 1, duration: 2800, delay: 600, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
     );
     loop.start();
-    return () => loop.stop();
+    return () => { loop.stop(); x.setValue(0); };
   }, [x]);
   const translateX = x.interpolate({ inputRange: [0, 1], outputRange: [-280, 360] });
   const num = value != null ? peso(value).replace("₱", "") : "—";

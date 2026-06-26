@@ -20,7 +20,7 @@ export function mapHtml(key: string): string {
 </style></head><body><div id="map"></div>
 <script>
   var map, overlay, PINS=[];
-  function post(o){ if(window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify(o)); }
+  function post(o){ try{ if(window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage==='function') window.ReactNativeWebView.postMessage(JSON.stringify(o)); }catch(e){} }
   function initMap(){
     map=new google.maps.Map(document.getElementById('map'),{
       center:{lat:10.3157,lng:123.8854}, zoom:13, disableDefaultUI:true, gestureHandling:'greedy', clickableIcons:false,
@@ -39,7 +39,7 @@ export function mapHtml(key: string): string {
   }
   function render(){
     if(!overlay || !overlay.layer) return;
-    var proj=overlay.getProjection(); if(!proj) return;
+    var proj=overlay.getProjection(); if(!proj || !proj.fromLatLngToDivPixel) return;
     overlay.layer.innerHTML='';
     for(var i=0;i<PINS.length;i++){ (function(p){
       var pos=proj.fromLatLngToDivPixel(new google.maps.LatLng(p.lat,p.lon)); if(!pos) return;

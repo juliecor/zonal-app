@@ -17,11 +17,12 @@ export function RiskGauge({
 
   return (
     <View style={{ width: size, height: size }}>
-      <Svg width={size} height={size} style={{ transform: [{ rotate: "-90deg" }] }}>
+      <Svg width={size} height={size}>
         <Circle cx={cx} cy={cy} r={r} stroke="#eaeef4" strokeWidth={stroke} fill="none" />
         <Circle
           cx={cx} cy={cy} r={r} stroke={color} strokeWidth={stroke} fill="none"
           strokeLinecap="round" strokeDasharray={`${dash} ${circ}`}
+          originX={cx} originY={cy} rotation={-90}
         />
       </Svg>
       <View style={g.center}>

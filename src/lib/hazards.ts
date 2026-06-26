@@ -33,6 +33,7 @@ async function getAt(path: string, lat: number, lon: number, ms = 8000): Promise
   const t = setTimeout(() => ctrl.abort(), ms);
   try {
     const r = await fetch(`${WEB}/api/${path}?lat=${lat}&lon=${lon}`, { signal: ctrl.signal, headers: { Accept: "application/json" } });
+    if (!r.ok) return null;
     return await r.json();
   } catch {
     return null;
