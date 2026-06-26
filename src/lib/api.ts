@@ -194,19 +194,28 @@ export async function reverseGeocode(lat: number, lon: number): Promise<{ city?:
   }
 }
 
-/** Resolve the zonalvalue.com province subdomain for a lat/lon — authoritative via
- *  reverse-geocode → city-search, cached per ~1km cell. Works in any province. */
-export async function resolveDomain(lat: number, lon: number): Promise<string> {
+/** Resolve the zonalvalue.com province subdomain for a lat/lon, cached per ~1km cell.
+ *  Key-safe: prefers a hint city (from the nearest cached point) → city-search, so it
+ *  works even when a referrer-restricted Maps key blocks the REST geocoder. */
+export async function resolveDomain(lat: number, lon: number, hintCity?: string, hintProvince?: string): Promise<string> {
   const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
   const cached = domainCache.get(key);
   if (cached) return cached;
   let domain = "";
-  const { city, province } = await reverseGeocode(lat, lon);
-  if (city) {
-    const matches = await citySearch(city);
+  if (hintCity) {
+    const matches = await citySearch(hintCity);
     if (matches.length) domain = matches[0].domain;
   }
-  if (!domain && province) domain = provinceToDomain(province);
+  if (!domain && !hintCity && !hintProvince) {
+    // no nearby data to hint with — try the (possibly key-limited) REST geocoder
+    const { city, province } = await reverseGeocode(lat, lon);
+    if (city) {
+      const matches = await citySearch(city);
+      if (matches.length) domain = matches[0].domain;
+    }
+    if (!domain && province) domain = provinceToDomain(province);
+  }
+  if (!domain && hintProvince) domain = provinceToDomain(hintProvince);
   if (!domain) domain = "cebu.zonalvalue.com";
   domainCache.set(key, domain);
   return domain;

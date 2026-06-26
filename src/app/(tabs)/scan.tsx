@@ -40,10 +40,8 @@ export default function ScanScreen() {
     setHaz(null);
     center.current = { lat, lon };
     try {
-      const [near, domain] = await Promise.all([
-        nearestValue(lat, lon, 3000).catch(() => null),
-        resolveDomain(lat, lon).catch(() => "cebu.zonalvalue.com"),
-      ]);
+      const near = await nearestValue(lat, lon, 3000).catch(() => null);
+      const domain = await resolveDomain(lat, lon, near?.city, near?.province).catch(() => "cebu.zonalvalue.com");
       const d = 0.0032;
       const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "scan").catch(() => null);
 

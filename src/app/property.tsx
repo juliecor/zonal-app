@@ -33,10 +33,8 @@ export default function PropertyScreen() {
     if (!isFinite(lat) || !isFinite(lon)) { setLoading(false); return; }
     setLoading(true);
     (async () => {
-      const [v, domain] = await Promise.all([
-        nearestValue(lat, lon).catch(() => null),
-        resolveDomain(lat, lon).catch(() => "cebu.zonalvalue.com"),
-      ]);
+      const v = await nearestValue(lat, lon).catch(() => null);
+      const domain = await resolveDomain(lat, lon, v?.city, v?.province).catch(() => "cebu.zonalvalue.com");
       const d = 0.0032;
       const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "").catch(() => null);
       if (!alive) return;

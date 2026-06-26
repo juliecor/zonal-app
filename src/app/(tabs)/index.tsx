@@ -77,11 +77,9 @@ export default function MapScreen() {
   async function inspect(lat: number, lon: number, presetName?: string) {
     setBusy(true);
     try {
-      // 1) nearby cached points (with coords) + the correct province subdomain, in parallel
-      const [near, domain] = await Promise.all([
-        nearestValue(lat, lon).catch(() => null),
-        resolveDomain(lat, lon).catch(() => "cebu.zonalvalue.com"),
-      ]);
+      // 1) nearby cached points (with coords) → then the correct province subdomain
+      const near = await nearestValue(lat, lon).catch(() => null);
+      const domain = await resolveDomain(lat, lon, near?.city, near?.province).catch(() => "cebu.zonalvalue.com");
       // 2) scan-area at the exact spot → precise street value + land-use classes
       const d = 0.0032;
       const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "").catch(() => null);
