@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
-import { nearestValue, type ValueLookup } from "@/lib/api";
+import { nearestValue, resolveDomain, scanArea } from "@/lib/api";
 import { peso, SERIF, titleCase, Z } from "@/theme/zonal";
 
 function pesoBig(n: number): string {
@@ -19,22 +19,41 @@ export default function ReportScreen() {
   const params = useLocalSearchParams<{ lat?: string; lon?: string; name?: string }>();
   const lat = Number(params.lat);
   const lon = Number(params.lon);
-  const [data, setData] = useState<ValueLookup | null>(null);
+  const [info, setInfo] = useState<{ name: string; city: string; value: number | null; code: string } | null>(null);
   const [haz, setHaz] = useState<HazardProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
     if (!isFinite(lat) || !isFinite(lon)) { setLoading(false); return; }
-    nearestValue(lat, lon).then((v) => { if (alive) { setData(v); setLoading(false); } }).catch(() => alive && setLoading(false));
+    (async () => {
+      const [v, domain] = await Promise.all([
+        nearestValue(lat, lon).catch(() => null),
+        resolveDomain(lat, lon).catch(() => "cebu.zonalvalue.com"),
+      ]);
+      const d = 0.0032;
+      const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "").catch(() => null);
+      if (!alive) return;
+      const scanPt = scan?.points?.[0];
+      const value = scanPt?.value_per_sqm
+        ?? scan?.classes?.find((c) => c.group === scan.defaultGroup)?.value
+        ?? v?.value_per_sqm ?? null;
+      setInfo({
+        name: params.name || (scanPt?.street ? titleCase(scanPt.street) : v?.street ? titleCase(v.street) : "Property"),
+        city: [titleCase(scanPt?.barangay || v?.barangay || ""), titleCase(scanPt?.city || v?.city || "")].filter(Boolean).join(", ") || "Philippines",
+        value,
+        code: scanPt?.classification_code || v?.classification_code || "",
+      });
+      setLoading(false);
+    })();
     hazardsAt(lat, lon).then((h) => alive && setHaz(h)).catch(() => {});
     return () => { alive = false; };
-  }, [lat, lon]);
+  }, [lat, lon, params.name]);
 
-  const name = data?.street ? titleCase(data.street) : params.name || "Property";
-  const city = [titleCase(data?.barangay || ""), titleCase(data?.city || "")].filter(Boolean).join(", ") || "Philippines";
-  const value = data?.value_per_sqm ?? null;
-  const code = data?.classification_code || "";
+  const name = info?.name || params.name || "Property";
+  const city = info?.city || "Philippines";
+  const value = info?.value ?? null;
+  const code = info?.code || "";
   const flood = haz?.hazards.find((h) => h.key === "flood");
   const fault = haz?.hazards.find((h) => h.key === "fault");
 

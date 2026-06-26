@@ -12,15 +12,16 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { ClassChip } from "@/components/ClassChip";
 import { HazardChips } from "@/components/HazardChips";
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
-import { nearestValue, placeDetails, placesAutocomplete, type Suggestion, type ZPoint } from "@/lib/api";
+import { nearestValue, placeDetails, placesAutocomplete, resolveDomain, scanArea, type Suggestion } from "@/lib/api";
 import { peso, SERIF, titleCase, Z } from "@/theme/zonal";
 
 interface Primary { lat: number; lon: number; value: number | null; code: string | null; name: string; addr: string }
+interface ScanItem { value: number; code?: string | null; line: string; meta?: string; lat?: number; lon?: number }
 
 export default function ScanScreen() {
   const [q, setQ] = useState("");
   const [sugs, setSugs] = useState<Suggestion[]>([]);
-  const [results, setResults] = useState<ZPoint[]>([]);
+  const [results, setResults] = useState<ScanItem[]>([]);
   const [primary, setPrimary] = useState<Primary | null>(null);
   const [haz, setHaz] = useState<HazardProfile | null>(null);
   const [place, setPlace] = useState("Cebu City");
@@ -39,25 +40,51 @@ export default function ScanScreen() {
     setHaz(null);
     center.current = { lat, lon };
     try {
-      const v = await nearestValue(lat, lon, 3000);
-      const pts = (v.nearby || [])
+      const [near, domain] = await Promise.all([
+        nearestValue(lat, lon, 3000).catch(() => null),
+        resolveDomain(lat, lon).catch(() => "cebu.zonalvalue.com"),
+      ]);
+      const d = 0.0032;
+      const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "scan").catch(() => null);
+
+      const scanPt = scan?.points?.[0];
+      const value = scanPt?.value_per_sqm
+        ?? scan?.classes?.find((c) => c.group === scan.defaultGroup)?.value
+        ?? near?.value_per_sqm ?? null;
+      const code = scanPt?.classification_code ?? near?.classification_code ?? null;
+      const name = scanPt?.street ? titleCase(scanPt.street) : near?.street ? titleCase(near.street) : label;
+      const addr = [titleCase(scanPt?.barangay || near?.barangay || ""), titleCase(scanPt?.city || near?.city || "")]
+        .filter(Boolean).join(" · ") || label;
+      setPrimary({ lat, lon, value, code, name, addr });
+      hazardsAt(lat, lon).then(setHaz).catch(() => {});
+
+      // nearby list — prefer cached points (tappable, with coords); else scan-area streets
+      let items: ScanItem[] = [];
+      const coordPts = (near?.nearby || [])
         .filter((p) => Number(p.value_per_sqm) > 0)
         .sort((a, b) => (a.distance_m ?? 9e9) - (b.distance_m ?? 9e9));
       const seen = new Set<string>();
-      const list: ZPoint[] = [];
-      for (const p of pts) {
+      for (const p of coordPts) {
         const k = `${p.street}|${p.value_per_sqm}|${p.classification_code}`;
         if (seen.has(k)) continue;
         seen.add(k);
-        list.push(p);
+        items.push({
+          value: Number(p.value_per_sqm), code: p.classification_code,
+          line: titleCase(p.street || p.barangay || "Parcel"),
+          meta: [titleCase(p.barangay || ""), p.distance_m != null ? `${Math.round(p.distance_m)}m` : ""].filter(Boolean).join(" · "),
+          lat: p.lat, lon: p.lon,
+        });
       }
-      setResults(list);
-      setPrimary({
-        lat: v.lat, lon: v.lon, value: v.value_per_sqm, code: v.classification_code,
-        name: v.street ? titleCase(v.street) : label,
-        addr: [titleCase(v.barangay || ""), titleCase(v.city || "")].filter(Boolean).join(" · ") || label,
-      });
-      hazardsAt(v.lat, v.lon).then(setHaz).catch(() => {});
+      if (!items.length && scan?.nearby?.length) {
+        items = scan.nearby
+          .filter((n) => Number(n.value_per_sqm) > 0)
+          .map((n) => ({
+            value: Number(n.value_per_sqm), code: n.classification_code,
+            line: titleCase(n.street || n.barangay || "Parcel"),
+            meta: titleCase(n.barangay || n.city || ""),
+          }));
+      }
+      setResults(items);
     } catch {
       setResults([]);
       setPrimary(null);
@@ -133,17 +160,19 @@ export default function ScanScreen() {
             count={`near ${place}`}
           />
           {results.length === 0 ? (
-            <View style={s.center}><Ionicons name="search-outline" size={26} color={Z.slate} /><Text style={s.dim}>No cached values near here yet. Try a busier area or the Map tab.</Text></View>
+            <View style={s.center}><Ionicons name="search-outline" size={26} color={Z.slate} /><Text style={s.dim}>No zonal data near here. Try a busier area or the Map tab.</Text></View>
           ) : (
             <View style={{ gap: 8, marginTop: 12 }}>
               {results.map((p, i) => (
                 <ParcelCard
                   key={i}
-                  value={Number(p.value_per_sqm)}
-                  code={p.classification_code}
-                  line={titleCase(p.street || p.barangay || "Parcel")}
-                  meta={[titleCase(p.barangay || ""), p.distance_m != null ? `${Math.round(p.distance_m)}m` : ""].filter(Boolean).join(" · ")}
-                  onPress={() => router.push({ pathname: "/property", params: { lat: String(p.lat), lon: String(p.lon) } } as any)}
+                  value={p.value}
+                  code={p.code}
+                  line={p.line}
+                  meta={p.meta}
+                  onPress={p.lat != null && p.lon != null
+                    ? () => router.push({ pathname: "/property", params: { lat: String(p.lat), lon: String(p.lon) } } as any)
+                    : undefined}
                 />
               ))}
             </View>
@@ -151,7 +180,6 @@ export default function ScanScreen() {
         </ScrollView>
       )}
 
-      {/* sticky bottom value panel */}
       {!loading && primary && (
         <View style={s.panel}>
           <Pressable onPress={openPrimary}>

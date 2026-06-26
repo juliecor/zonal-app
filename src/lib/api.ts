@@ -4,8 +4,11 @@
 //   WEB_BASE  — Next.js endpoints: scan-area, map pins, search, AI assistant. Public.
 // Everything used here is callable WITHOUT login (peso values via geocode-nearest are free).
 
+import { provinceToDomain } from "./landuse";
+
 export const API_BASE = "https://apizonal.leuteriorealty.com/api";
 export const WEB_BASE = "https://zonalvalue.ph/api";
+const MAPS_KEY = process.env.EXPO_PUBLIC_MAPS_KEY || "";
 
 async function getJSON(base: string, path: string, ms = 9000): Promise<any> {
   const ctrl = new AbortController();
@@ -165,6 +168,48 @@ export async function citySearch(q: string): Promise<CityMatch[]> {
   } catch {
     return [];
   }
+}
+
+/* ── Which province subdomain a point belongs to (so scan-area hits the right DB) ── */
+
+const domainCache = new Map<string, string>();
+
+export async function reverseGeocode(lat: number, lon: number): Promise<{ city?: string; province?: string }> {
+  if (!MAPS_KEY) return {};
+  try {
+    const r = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&region=ph&key=${MAPS_KEY}`);
+    const j = await r.json();
+    const comps: any[] = j?.results?.[0]?.address_components || [];
+    let city: string | undefined;
+    let province: string | undefined;
+    for (const c of comps) {
+      const t: string[] = c.types || [];
+      if (t.includes("locality")) city = c.long_name;
+      else if (!city && t.includes("administrative_area_level_3")) city = c.long_name;
+      if (t.includes("administrative_area_level_2")) province = c.long_name;
+    }
+    return { city, province };
+  } catch {
+    return {};
+  }
+}
+
+/** Resolve the zonalvalue.com province subdomain for a lat/lon — authoritative via
+ *  reverse-geocode → city-search, cached per ~1km cell. Works in any province. */
+export async function resolveDomain(lat: number, lon: number): Promise<string> {
+  const key = `${lat.toFixed(2)},${lon.toFixed(2)}`;
+  const cached = domainCache.get(key);
+  if (cached) return cached;
+  let domain = "";
+  const { city, province } = await reverseGeocode(lat, lon);
+  if (city) {
+    const matches = await citySearch(city);
+    if (matches.length) domain = matches[0].domain;
+  }
+  if (!domain && province) domain = provinceToDomain(province);
+  if (!domain) domain = "cebu.zonalvalue.com";
+  domainCache.set(key, domain);
+  return domain;
 }
 
 /* ───────────────────────── AI assistant ───────────────────────── */

@@ -10,14 +10,23 @@ import { router } from "expo-router";
 
 import { mapHtml } from "@/lib/mapHtml";
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
-import { nearestValue, placeDetails, placesAutocomplete, type Suggestion, type ZPoint } from "@/lib/api";
+import {
+  nearestValue, placeDetails, placesAutocomplete, resolveDomain, scanArea,
+  type Suggestion, type ZPoint,
+} from "@/lib/api";
+import { buildLandUse, landUseFromClasses, type Group, type LandUse } from "@/lib/landuse";
 import { ClassChip } from "@/components/ClassChip";
 import { HazardChips } from "@/components/HazardChips";
+import { LandUseToggle } from "@/components/LandUseToggle";
 import { peso, pesoK, SERIF, titleCase, Z } from "@/theme/zonal";
 
 const KEY = process.env.EXPO_PUBLIC_MAPS_KEY || "";
 
-interface Sheet { lat: number; lon: number; name: string; address: string; value: number | null; code: string | null; nearby: ZPoint[] }
+interface Sheet {
+  lat: number; lon: number; name: string; address: string;
+  value: number | null; code: string | null;
+  options: LandUse[]; nearby: ZPoint[];
+}
 
 export default function MapScreen() {
   const web = useRef<WebView>(null);
@@ -25,13 +34,14 @@ export default function MapScreen() {
   const [sugs, setSugs] = useState<Suggestion[]>([]);
   const [mapType, setMapType] = useState<"roadmap" | "hybrid">("roadmap");
   const [sheet, setSheet] = useState<Sheet | null>(null);
+  const [lu, setLu] = useState<Group>("residential");
   const [haz, setHaz] = useState<HazardProfile | null>(null);
   const [busy, setBusy] = useState(false);
 
   const center = useRef({ lat: 10.3157, lon: 123.8854 });
   const pinsRef = useRef<any[]>([]);
   const selRef = useRef<any | null>(null);
-  const sheetY = useRef(new Animated.Value(420)).current;
+  const sheetY = useRef(new Animated.Value(460)).current;
   const debTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const inject = (js: string) => web.current?.injectJavaScript(js + "; true;");
@@ -47,14 +57,15 @@ export default function MapScreen() {
     inject(`window.ZV.setPins(${JSON.stringify(arr)})`);
   }
 
-  function showSheet(s: Sheet) {
+  function showSheet(s: Sheet, defaultGroup: Group) {
     setSheet(s);
+    setLu(defaultGroup);
     setHaz(null);
-    Animated.spring(sheetY, { toValue: 0, useNativeDriver: true, friction: 9, tension: 68 }).start();
+    Animated.spring(sheetY, { toValue: 0, useNativeDriver: true, friction: 9, tension: 66 }).start();
     hazardsAt(s.lat, s.lon).then(setHaz).catch(() => {});
   }
   function hideSheet() {
-    Animated.timing(sheetY, { toValue: 420, duration: 200, useNativeDriver: true }).start(() => {
+    Animated.timing(sheetY, { toValue: 460, duration: 200, useNativeDriver: true }).start(() => {
       setSheet(null);
       selRef.current = null;
       pinsRef.current = [];
@@ -62,28 +73,53 @@ export default function MapScreen() {
     });
   }
 
-  // Look up a spot, drop a gold marker + nearby markers, and open the sheet.
+  // Precise value AT the clicked spot (like the website), WITHOUT moving the camera.
   async function inspect(lat: number, lon: number, presetName?: string) {
     setBusy(true);
     try {
-      const v = await nearestValue(lat, lon);
-      const nearby = (v.nearby || [])
-        .filter((p) => Number(p.value_per_sqm) > 0)
+      // 1) nearby cached points (with coords) + the correct province subdomain, in parallel
+      const [near, domain] = await Promise.all([
+        nearestValue(lat, lon).catch(() => null),
+        resolveDomain(lat, lon).catch(() => "cebu.zonalvalue.com"),
+      ]);
+      // 2) scan-area at the exact spot → precise street value + land-use classes
+      const d = 0.0032;
+      const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "").catch(() => null);
+
+      let options: LandUse[] = scan?.classes?.length ? landUseFromClasses(scan.classes) : [];
+      let defaultGroup = (scan?.defaultGroup as Group) || options[0]?.group || "residential";
+      if (!options.length && near) {
+        const built = buildLandUse(
+          [{ value_per_sqm: near.value_per_sqm ?? undefined, classification_code: near.classification_code ?? undefined }, ...near.nearby],
+          near.classification_code,
+        );
+        options = built.options;
+        defaultGroup = built.defaultGroup;
+      }
+
+      const scanPt = scan?.points?.[0];
+      const defOpt = options.find((o) => o.group === defaultGroup);
+      const value = scanPt?.value_per_sqm ?? defOpt?.value ?? near?.value_per_sqm ?? null;
+      const code = scanPt?.classification_code ?? defOpt?.code ?? near?.classification_code ?? null;
+
+      const name = presetName
+        || (scanPt?.street ? titleCase(scanPt.street) : near?.street ? titleCase(near.street) : near?.label || "Selected location");
+      const addr = [titleCase(scanPt?.barangay || near?.barangay || ""), titleCase(scanPt?.city || near?.city || "")]
+        .filter(Boolean).join(" · ") || "Selected spot";
+
+      const nearby = (near?.nearby || []).filter((p) => Number(p.value_per_sqm) > 0)
         .sort((a, b) => (a.distance_m ?? 9e9) - (b.distance_m ?? 9e9));
-      const name = presetName || (v.street ? titleCase(v.street) : v.label || "Selected location");
-      const addr = [titleCase(v.barangay || ""), titleCase(v.city || "")].filter(Boolean).join(" · ") || "Tap a place to inspect";
-      selRef.current = {
-        lat: v.lat, lon: v.lon, label: pesoK(v.value_per_sqm), value_per_sqm: v.value_per_sqm,
-        classification_code: v.classification_code, street: v.street, barangay: v.barangay, city: v.city,
-      };
+
+      // pin stays at the CLICKED spot (no camera move)
+      selRef.current = { lat, lon, label: pesoK(value), value_per_sqm: value, classification_code: code };
       pinsRef.current = nearby.slice(0, 8).map((p, i) => ({
         id: i, lat: p.lat, lon: p.lon, label: pesoK(p.value_per_sqm),
         value_per_sqm: p.value_per_sqm, classification_code: p.classification_code,
         street: p.street, barangay: p.barangay, city: p.city,
       }));
-      inject(`window.ZV.center(${v.lat},${v.lon})`);
       pushPins();
-      showSheet({ lat: v.lat, lon: v.lon, name, address: addr, value: v.value_per_sqm, code: v.classification_code, nearby: nearby.slice(0, 3) });
+
+      showSheet({ lat, lon, name, address: addr, value, code, options, nearby: nearby.slice(0, 3) }, defaultGroup);
     } finally {
       setBusy(false);
     }
@@ -124,7 +160,7 @@ export default function MapScreen() {
     try {
       const d = await placeDetails(s.placeId);
       if (d) {
-        inject(`window.ZV.center(${d.lat},${d.lon},17)`);
+        inject(`window.ZV.center(${d.lat},${d.lon},17)`); // only searches recenter
         await inspect(d.lat, d.lon, d.name);
       }
     } finally {
@@ -141,6 +177,10 @@ export default function MapScreen() {
     if (!sheet) return;
     router.push({ pathname: "/property", params: { lat: String(sheet.lat), lon: String(sheet.lon), name: sheet.name } } as any);
   }
+
+  const selOpt = sheet?.options.find((o) => o.group === lu);
+  const shownValue = selOpt ? selOpt.value : sheet?.value ?? null;
+  const shownCode = selOpt ? selOpt.code : sheet?.code ?? null;
 
   return (
     <View style={st.root}>
@@ -214,10 +254,16 @@ export default function MapScreen() {
           <Text style={st.ad} numberOfLines={1}>{sheet.address}</Text>
           <View style={st.vrow}>
             <Text style={st.cur}>₱</Text>
-            <Text style={st.vnum}>{sheet.value != null ? peso(sheet.value).replace("₱", "") : "—"}</Text>
+            <Text style={st.vnum}>{shownValue != null ? peso(shownValue).replace("₱", "") : "—"}</Text>
             <Text style={st.per}>/sqm</Text>
-            <View style={{ marginLeft: "auto" }}>{!!sheet.code && <ClassChip code={sheet.code} />}</View>
+            <View style={{ marginLeft: "auto" }}>{!!shownCode && <ClassChip code={shownCode} />}</View>
           </View>
+
+          {sheet.options.length >= 2 && (
+            <View style={{ marginTop: 12 }}>
+              <LandUseToggle options={sheet.options} selected={lu} onSelect={(g) => setLu(g as Group)} />
+            </View>
+          )}
 
           <View style={st.hzWrap}>
             {haz ? <HazardChips hazards={haz.hazards} /> : <Text style={st.hloading}>Reading 6 geohazards…</Text>}

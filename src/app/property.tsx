@@ -12,8 +12,8 @@ import { HazardPanel } from "@/components/HazardPanel";
 import { ParcelCard } from "@/components/ParcelCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
-import { nearestValue, type ValueLookup } from "@/lib/api";
-import { buildLandUse, GROUP_LABEL, type Group, type LandUse } from "@/lib/landuse";
+import { nearestValue, resolveDomain, scanArea, type ZPoint } from "@/lib/api";
+import { buildLandUse, GROUP_LABEL, landUseFromClasses, type Group, type LandUse } from "@/lib/landuse";
 import { titleCase, Z } from "@/theme/zonal";
 
 export default function PropertyScreen() {
@@ -21,53 +21,65 @@ export default function PropertyScreen() {
   const lat = Number(params.lat);
   const lon = Number(params.lon);
 
-  const [data, setData] = useState<ValueLookup | null>(null);
   const [haz, setHaz] = useState<HazardProfile | null>(null);
-  const [lu, setLu] = useState<{ options: LandUse[]; defaultGroup: Group }>({ options: [], defaultGroup: "residential" });
+  const [options, setOptions] = useState<LandUse[]>([]);
   const [sel, setSel] = useState<Group>("residential");
+  const [nearby, setNearby] = useState<ZPoint[]>([]);
+  const [info, setInfo] = useState<{ value: number | null; code: string | null; name: string; addr: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
     if (!isFinite(lat) || !isFinite(lon)) { setLoading(false); return; }
     setLoading(true);
-    nearestValue(lat, lon)
-      .then((v) => {
-        if (!alive) return;
-        setData(v);
-        const pts = [{ value_per_sqm: v.value_per_sqm ?? undefined, classification_code: v.classification_code ?? undefined }, ...v.nearby];
-        const built = buildLandUse(pts, v.classification_code);
-        setLu(built);
-        setSel(built.defaultGroup);
-        setLoading(false);
-      })
-      .catch(() => alive && setLoading(false));
+    (async () => {
+      const [v, domain] = await Promise.all([
+        nearestValue(lat, lon).catch(() => null),
+        resolveDomain(lat, lon).catch(() => "cebu.zonalvalue.com"),
+      ]);
+      const d = 0.0032;
+      const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "").catch(() => null);
+      if (!alive) return;
+
+      let opts: LandUse[] = scan?.classes?.length ? landUseFromClasses(scan.classes) : [];
+      let defGroup = (scan?.defaultGroup as Group) || opts[0]?.group || "residential";
+      if (!opts.length && v) {
+        const built = buildLandUse(
+          [{ value_per_sqm: v.value_per_sqm ?? undefined, classification_code: v.classification_code ?? undefined }, ...v.nearby],
+          v.classification_code,
+        );
+        opts = built.options;
+        defGroup = built.defaultGroup;
+      }
+      const scanPt = scan?.points?.[0];
+      const defOpt = opts.find((o) => o.group === defGroup);
+      const value = scanPt?.value_per_sqm ?? defOpt?.value ?? v?.value_per_sqm ?? null;
+      const code = scanPt?.classification_code ?? defOpt?.code ?? v?.classification_code ?? null;
+      const name = params.name
+        || (scanPt?.street ? titleCase(scanPt.street) : v?.street ? titleCase(v.street) : v?.label || "Property");
+      const addr = [titleCase(scanPt?.barangay || v?.barangay || ""), titleCase(scanPt?.city || v?.city || "")].filter(Boolean).join(" · ");
+
+      setOptions(opts);
+      setSel(defGroup);
+      setNearby((v?.nearby || []).filter((p) => Number(p.value_per_sqm) > 0).sort((a, b) => (a.distance_m ?? 9e9) - (b.distance_m ?? 9e9)).slice(0, 8));
+      setInfo({ value, code, name, addr });
+      setLoading(false);
+    })();
     hazardsAt(lat, lon).then((h) => alive && setHaz(h)).catch(() => {});
     return () => { alive = false; };
-  }, [lat, lon]);
+  }, [lat, lon, params.name]);
 
-  const selOpt = lu.options.find((o) => o.group === sel);
-  const shownValue = selOpt ? selOpt.value : data?.value_per_sqm ?? null;
-  const name = data?.street ? titleCase(data.street) : params.name || data?.label || "Property";
-  const addr = [titleCase(data?.barangay || ""), titleCase(data?.city || "")].filter(Boolean).join(" · ");
-  const appliesTo = data
-    ? [titleCase(data.street || data.barangay || ""), GROUP_LABEL[sel]].filter(Boolean).join(" · ")
-    : undefined;
-
-  const nearby = (data?.nearby || [])
-    .filter((p) => Number(p.value_per_sqm) > 0)
-    .sort((a, b) => (a.distance_m ?? 9e9) - (b.distance_m ?? 9e9))
-    .slice(0, 8);
+  const selOpt = options.find((o) => o.group === sel);
+  const shownValue = selOpt ? selOpt.value : info?.value ?? null;
+  const name = info?.name || params.name || "Property";
+  const appliesTo = info ? [info.name, GROUP_LABEL[sel]].filter(Boolean).join(" · ") : undefined;
 
   function askAI() {
     router.push({
       pathname: "/assistant",
       params: {
-        q: `Tell me about ${name}${addr ? ", " + addr : ""} — is it good value for the risk?`,
-        ctx: JSON.stringify({
-          street: data?.street, barangay: data?.barangay, city: data?.city, province: data?.province,
-          classification: data?.classification_code, zonalValue: shownValue,
-        }),
+        q: `Tell me about ${name}${info?.addr ? ", " + info.addr : ""} — is it good value for the risk?`,
+        ctx: JSON.stringify({ classification: info?.code, zonalValue: shownValue, place: name, addr: info?.addr }),
       },
     } as any);
   }
@@ -79,21 +91,21 @@ export default function PropertyScreen() {
     <View style={s.root}>
       <StatusBar style="dark" />
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.paper }}>
-        <AppBar title={name} subtitle={addr || "Establishment"} right={
+        <AppBar title={name} subtitle={info?.addr || "Establishment"} right={
           <Pressable onPress={openReport} hitSlop={8} style={s.shareBtn}><Ionicons name="share-outline" size={18} color={Z.navy} /></Pressable>
         } />
       </SafeAreaView>
 
       {loading ? (
         <View style={s.center}><ActivityIndicator color={Z.gold} /><Text style={s.dim}>Reading the land…</Text></View>
-      ) : !data?.found && shownValue == null ? (
+      ) : shownValue == null ? (
         <View style={s.center}><Ionicons name="map-outline" size={28} color={Z.slate} /><Text style={s.dim}>No zonal data found for this exact spot.</Text></View>
       ) : (
         <ScrollView style={s.body} contentContainerStyle={{ padding: 14, paddingBottom: 40 }}>
           <ValueCard value={shownValue} appliesTo={appliesTo} />
 
           <View style={{ marginTop: 14 }}>
-            <LandUseToggle options={lu.options} selected={sel} onSelect={(g) => setSel(g as Group)} />
+            <LandUseToggle options={options} selected={sel} onSelect={(g) => setSel(g as Group)} />
           </View>
 
           <View style={{ marginTop: 14 }}>
