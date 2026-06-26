@@ -221,6 +221,61 @@ export async function resolveDomain(lat: number, lon: number, hintCity?: string,
   return domain;
 }
 
+/* ───────────────────────── Auth (login / register / me) ───────────────────────── */
+
+export interface AuthUser {
+  id: number; name: string; email: string; role?: string; token_balance?: number;
+  first_name?: string; middle_name?: string; last_name?: string; phone?: string;
+}
+export interface AuthResponse { user: AuthUser; token: string }
+export type RegisterPayload = {
+  first_name: string; middle_name?: string; last_name: string;
+  phone?: string; email: string; password: string; password_confirmation: string;
+};
+export type RegisterResult = AuthResponse | { pending_verification: true; user_id: number; email: string; resend_cooldown?: number };
+
+async function authPost(path: string, body: any): Promise<any> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+  });
+  let j: any = null;
+  try { j = await res.json(); } catch { /* non-JSON */ }
+  if (!res.ok) {
+    const firstErr = j?.errors ? (Object.values(j.errors)[0] as any)?.[0] : undefined;
+    throw new Error(j?.message || firstErr || `Request failed (${res.status})`);
+  }
+  return j;
+}
+
+export function authLogin(email: string, password: string): Promise<AuthResponse> {
+  return authPost("/login", { email, password });
+}
+export function authRegister(payload: RegisterPayload): Promise<RegisterResult> {
+  return authPost("/register", payload);
+}
+export function authVerifyOtp(user_id: number, code: string): Promise<AuthResponse> {
+  return authPost("/otp/verify", { user_id, code });
+}
+export function authResendOtp(user_id: number): Promise<any> {
+  return authPost("/otp/resend", { user_id });
+}
+export async function authMe(token: string): Promise<AuthUser | null> {
+  try {
+    const r = await fetch(`${API_BASE}/me`, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+export async function authLogout(token: string): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/logout`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+  } catch { /* ignore */ }
+}
+
 /* ───────────────────────── AI assistant ───────────────────────── */
 
 export interface ChatMsg { role: "user" | "assistant"; content: string }

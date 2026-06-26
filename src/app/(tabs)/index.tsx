@@ -15,6 +15,7 @@ import {
   type Suggestion, type ZPoint,
 } from "@/lib/api";
 import { buildLandUse, landUseFromClasses, type Group, type LandUse } from "@/lib/landuse";
+import { useAuth } from "@/lib/auth";
 import { ClassChip } from "@/components/ClassChip";
 import { HazardChips } from "@/components/HazardChips";
 import { LandUseToggle } from "@/components/LandUseToggle";
@@ -38,6 +39,10 @@ interface Sheet {
 }
 
 export default function MapScreen() {
+  const { user } = useAuth();
+  const initials = user
+    ? ((user.first_name?.[0] || user.name?.[0] || "U") + (user.last_name?.[0] || "")).toUpperCase()
+    : "FH";
   const web = useRef<WebView>(null);
   const [q, setQ] = useState("");
   const [sugs, setSugs] = useState<Suggestion[]>([]);
@@ -226,7 +231,9 @@ export default function MapScreen() {
               </Pressable>
             )}
           </View>
-          <View style={st.ava}><Text style={st.avaT}>FH</Text></View>
+          <Pressable style={st.ava} onPress={() => router.push("/profile" as any)}>
+            <Text style={st.avaT}>{initials}</Text>
+          </Pressable>
         </View>
 
         {sugs.length > 0 && (
@@ -243,20 +250,21 @@ export default function MapScreen() {
           </View>
         )}
 
-        <View style={st.seg}>
-          {(["roadmap", "hybrid"] as const).map((t) => (
-            <Pressable key={t} onPress={() => toggleType(t)} style={[st.segB, mapType === t && st.segOn]}>
-              <Text style={[st.segT, mapType === t && st.segTOn]}>{t === "roadmap" ? "Map" : "Satellite"}</Text>
-            </Pressable>
-          ))}
-        </View>
-        <View style={st.hazWrap} pointerEvents="box-none">
-          <Pressable onPress={() => setLayersOpen((o) => !o)} style={st.hazBtn}>
-            <Ionicons name="layers-outline" size={14} color={Z.navy} />
-            <Text style={st.hazBtnT}>Hazards{activeLayers ? ` · ${activeLayers}` : ""}</Text>
-            <Ionicons name={layersOpen ? "chevron-up" : "chevron-down"} size={13} color={Z.slate} />
+        <View style={st.controls} pointerEvents="box-none">
+          <View style={st.seg}>
+            {(["roadmap", "hybrid"] as const).map((t) => (
+              <Pressable key={t} onPress={() => toggleType(t)} style={[st.segB, mapType === t && st.segOn]}>
+                <Text style={[st.segT, mapType === t && st.segTOn]}>{t === "roadmap" ? "Map" : "Satellite"}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Pressable onPress={() => setLayersOpen((o) => !o)} style={[st.hazBtn, activeLayers > 0 && st.hazBtnOn]}>
+            <Ionicons name="layers-outline" size={14} color={activeLayers ? "#fff" : Z.navy} />
+            <Text style={[st.hazBtnT, activeLayers > 0 && { color: "#fff" }]}>Hazards{activeLayers ? ` ${activeLayers}` : ""}</Text>
+            <Ionicons name={layersOpen ? "chevron-up" : "chevron-down"} size={12} color={activeLayers ? "#fff" : Z.slate} />
           </Pressable>
-          {layersOpen && (
+        </View>
+        {layersOpen && (
             <View style={st.hazPanel}>
               <Text style={st.hazPanelH}>SHOW HAZARD OVERLAYS</Text>
               {HAZARD_LAYERS.map((h) => {
@@ -273,13 +281,12 @@ export default function MapScreen() {
               })}
             </View>
           )}
-          {!sheet && !layersOpen && (
-            <View style={st.hint}>
-              <Ionicons name="hand-left-outline" size={12} color="#fff" />
-              <Text style={st.hintT}>Tap any establishment to see its value</Text>
-            </View>
-          )}
-        </View>
+        {!sheet && !layersOpen && (
+          <View style={st.hint}>
+            <Ionicons name="hand-left-outline" size={12} color="#fff" />
+            <Text style={st.hintT}>Tap any establishment to see its value</Text>
+          </View>
+        )}
       </SafeAreaView>
 
       {busy && <View style={st.busy} pointerEvents="none"><ActivityIndicator color={Z.gold} /></View>}
@@ -361,23 +368,23 @@ const st = StyleSheet.create({
   sugMain: { fontSize: 13.5, fontWeight: "600", color: Z.ink },
   sugSec: { fontSize: 11, color: Z.slate, marginTop: 1 },
 
+  controls: { alignSelf: "center", marginTop: 9, flexDirection: "row", alignItems: "center", gap: 8 },
   seg: {
-    alignSelf: "center", marginTop: 9, flexDirection: "row", backgroundColor: "rgba(255,255,255,0.9)",
-    borderRadius: 100, padding: 3,
+    flexDirection: "row", backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 100, padding: 3,
     shadowColor: "#0c1430", shadowOpacity: 0.16, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4,
   },
-  segB: { paddingHorizontal: 16, paddingVertical: 6, borderRadius: 100 },
+  segB: { paddingHorizontal: 15, paddingVertical: 6, borderRadius: 100 },
   segOn: { backgroundColor: Z.navy },
   segT: { fontSize: 11.5, fontWeight: "700", color: Z.slate },
   segTOn: { color: "#fff" },
 
-  hint: { marginTop: 9, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(16,26,48,0.82)", borderRadius: 100, paddingHorizontal: 12, paddingVertical: 6 },
+  hint: { alignSelf: "center", marginTop: 9, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(16,26,48,0.82)", borderRadius: 100, paddingHorizontal: 12, paddingVertical: 6 },
   hintT: { color: "#fff", fontSize: 10.5, fontWeight: "600" },
 
-  hazWrap: { alignSelf: "center", marginTop: 9, alignItems: "center" },
-  hazBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 100, paddingHorizontal: 13, paddingVertical: 7, shadowColor: "#0c1430", shadowOpacity: 0.16, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  hazBtn: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 100, paddingHorizontal: 12, paddingVertical: 7, shadowColor: "#0c1430", shadowOpacity: 0.16, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  hazBtnOn: { backgroundColor: "#0f766e" },
   hazBtnT: { fontSize: 11.5, fontWeight: "700", color: Z.navy },
-  hazPanel: { marginTop: 8, backgroundColor: "#fff", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10, width: 212, borderWidth: 1, borderColor: Z.line, shadowColor: "#0c1430", shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
+  hazPanel: { alignSelf: "center", marginTop: 8, backgroundColor: "#fff", borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10, width: 212, borderWidth: 1, borderColor: Z.line, shadowColor: "#0c1430", shadowOpacity: 0.18, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
   hazPanelH: { fontSize: 8.5, letterSpacing: 1.2, color: Z.slate, fontWeight: "800", marginBottom: 4, paddingHorizontal: 4 },
   hazRow: { flexDirection: "row", alignItems: "center", gap: 9, paddingVertical: 7, paddingHorizontal: 4 },
   hazSw: { width: 18, height: 18, borderRadius: 6, borderWidth: 1.5, borderColor: Z.line, alignItems: "center", justifyContent: "center", backgroundColor: "#fff" },
