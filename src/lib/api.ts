@@ -261,6 +261,13 @@ export function authVerifyOtp(user_id: number, code: string): Promise<AuthRespon
 export function authResendOtp(user_id: number): Promise<any> {
   return authPost("/otp/resend", { user_id });
 }
+// Passwordless login by email code.
+export function authRequestLoginOtp(email: string): Promise<{ user_id: number; resend_cooldown?: number }> {
+  return authPost("/login/otp/request", { email });
+}
+export function authVerifyLoginOtp(user_id: number, code: string): Promise<AuthResponse> {
+  return authPost("/login/otp/verify", { user_id, code });
+}
 export async function authMe(token: string): Promise<AuthUser | null> {
   try {
     const r = await fetch(`${API_BASE}/me`, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } });

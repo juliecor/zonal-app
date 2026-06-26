@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import * as SecureStore from "expo-secure-store";
 
 import {
-  authLogin, authLogout, authMe, authRegister, authVerifyOtp,
+  authLogin, authLogout, authMe, authRegister, authRequestLoginOtp, authVerifyLoginOtp, authVerifyOtp,
   type AuthResponse, type AuthUser, type RegisterPayload, type RegisterResult,
 } from "@/lib/api";
 
@@ -15,6 +15,8 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<RegisterResult>;
   verifyOtp: (userId: number, code: string) => Promise<void>;
+  requestLoginOtp: (email: string) => Promise<{ user_id: number; resend_cooldown?: number }>;
+  verifyLoginOtp: (userId: number, code: string) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -63,6 +65,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     async verifyOtp(userId, code) {
       await persist(await authVerifyOtp(userId, code));
+    },
+    async requestLoginOtp(email) {
+      return authRequestLoginOtp(email);
+    },
+    async verifyLoginOtp(userId, code) {
+      await persist(await authVerifyLoginOtp(userId, code));
     },
     async signOut() {
       if (token) await authLogout(token);
