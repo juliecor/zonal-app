@@ -1,35 +1,17 @@
-import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-
-import { Z } from "@/theme/zonal";
+import { Stack } from "expo-router";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function RootLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: Z.navy,
-        tabBarInactiveTintColor: Z.slate,
-        tabBarStyle: { backgroundColor: Z.white, borderTopColor: Z.line },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "700" },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Browse",
-          tabBarIcon: ({ color, size }) => <Ionicons name="layers-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="map"
-        options={{
-          title: "Map",
-          tabBarIcon: ({ color, size }) => <Ionicons name="map-outline" size={size} color={color} />,
-        }}
-      />
-      {/* keep the template's explore route file, but hide it from the tab bar */}
-      <Tabs.Screen name="explore" options={{ href: null }} />
-    </Tabs>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="property" options={{ presentation: "card", animation: "slide_from_right" }} />
+          <Stack.Screen name="report" options={{ presentation: "card", animation: "slide_from_bottom" }} />
+        </Stack>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

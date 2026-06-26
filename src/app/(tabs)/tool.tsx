@@ -6,16 +6,14 @@ import { StatusBar } from "expo-status-bar";
 
 import { Z } from "@/theme/zonal";
 
-// The full live tool — search, establishment click → value, scan area, hazards,
-// AI assistant, login. Loaded in a WebView so the app has 100% of the website's
-// functionality. (The Google Maps key works because the real origin is zonalvalue.ph.)
+// The full live tool — record search, login, and everything the website does, as a
+// fallback to the native screens. (The Google Maps key works because origin is zonalvalue.ph.)
 const TOOL_URL = "https://zonalvalue.ph/";
 
-export default function MapScreen() {
+export default function ToolScreen() {
   const ref = useRef<WebView>(null);
   const [canBack, setCanBack] = useState(false);
 
-  // Android hardware back → go back inside the web tool instead of leaving the tab.
   useEffect(() => {
     if (Platform.OS !== "android") return;
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -45,7 +43,7 @@ export default function MapScreen() {
             <View style={styles.loading}>
               <View style={styles.logo}><Text style={styles.logoT}>Z</Text></View>
               <ActivityIndicator color={Z.gold} size="large" style={{ marginTop: 18 }} />
-              <Text style={styles.loadingT}>Loading the zonal tool…</Text>
+              <Text style={styles.loadingT}>Loading the full tool…</Text>
             </View>
           )}
         />

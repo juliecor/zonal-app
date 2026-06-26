@@ -8,7 +8,7 @@ import { StatusBar } from "expo-status-bar";
 import { getBarangays, getCities, PROVINCES } from "@/lib/api";
 import { titleCase, Z } from "@/theme/zonal";
 
-export default function HomeScreen() {
+export default function BrowseScreen() {
   const [prov, setProv] = useState("CEBU");
   const [cities, setCities] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -41,7 +41,6 @@ export default function HomeScreen() {
   return (
     <View style={styles.root}>
       <StatusBar style="light" />
-      {/* ── Brand header ── */}
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.navy }}>
         <View style={styles.header}>
           <View style={styles.brandRow}>
@@ -57,7 +56,6 @@ export default function HomeScreen() {
       </SafeAreaView>
 
       <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 44 }} keyboardShouldPersistTaps="handled">
-        {/* province chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
           {PROVINCES.map((p) => {
             const on = p === prov;
@@ -69,7 +67,6 @@ export default function HomeScreen() {
           })}
         </ScrollView>
 
-        {/* search */}
         <View style={styles.searchWrap}>
           <TextInput
             value={q} onChangeText={setQ}
@@ -81,14 +78,9 @@ export default function HomeScreen() {
         </View>
 
         {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={Z.gold} />
-            <Text style={styles.dim}>Loading {titleCase(prov)}…</Text>
-          </View>
+          <View style={styles.center}><ActivityIndicator color={Z.gold} /><Text style={styles.dim}>Loading {titleCase(prov)}…</Text></View>
         ) : err ? (
-          <View style={styles.center}>
-            <Text style={styles.dim}>Couldn&apos;t reach the server. Tap a province to retry.</Text>
-          </View>
+          <View style={styles.center}><Text style={styles.dim}>Couldn&apos;t reach the server. Tap a province to retry.</Text></View>
         ) : (
           <View style={styles.list}>
             <Text style={styles.count}>{filtered.length} cities / municipalities</Text>
@@ -114,7 +106,7 @@ export default function HomeScreen() {
                       ) : (
                         <Text style={styles.dim}>No barangays found.</Text>
                       )}
-                      <Text style={styles.note}>Peso values + 6-point hazard profile unlock with sign-in — coming next.</Text>
+                      <Text style={styles.note}>Open the Map or Scan tab to see peso values + the 6-point hazard read for any spot here.</Text>
                     </View>
                   )}
                 </View>
