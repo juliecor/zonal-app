@@ -10,15 +10,14 @@ import { router } from "expo-router";
 
 import { mapHtml } from "@/lib/mapHtml";
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
-import {
-  nearestValue, pinsInBounds, placeDetails, placesAutocomplete, type Suggestion,
-} from "@/lib/api";
+import { nearestValue, placeDetails, placesAutocomplete, type Suggestion, type ZPoint } from "@/lib/api";
 import { ClassChip } from "@/components/ClassChip";
+import { HazardChips } from "@/components/HazardChips";
 import { peso, pesoK, SERIF, titleCase, Z } from "@/theme/zonal";
 
 const KEY = process.env.EXPO_PUBLIC_MAPS_KEY || "";
 
-interface Sheet { lat: number; lon: number; name: string; address: string; value: number | null; code: string | null }
+interface Sheet { lat: number; lon: number; name: string; address: string; value: number | null; code: string | null; nearby: ZPoint[] }
 
 export default function MapScreen() {
   const web = useRef<WebView>(null);
@@ -32,7 +31,7 @@ export default function MapScreen() {
   const center = useRef({ lat: 10.3157, lon: 123.8854 });
   const pinsRef = useRef<any[]>([]);
   const selRef = useRef<any | null>(null);
-  const sheetY = useRef(new Animated.Value(360)).current;
+  const sheetY = useRef(new Animated.Value(420)).current;
   const debTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const inject = (js: string) => web.current?.injectJavaScript(js + "; true;");
@@ -51,69 +50,62 @@ export default function MapScreen() {
   function showSheet(s: Sheet) {
     setSheet(s);
     setHaz(null);
-    Animated.spring(sheetY, { toValue: 0, useNativeDriver: true, friction: 9, tension: 70 }).start();
+    Animated.spring(sheetY, { toValue: 0, useNativeDriver: true, friction: 9, tension: 68 }).start();
     hazardsAt(s.lat, s.lon).then(setHaz).catch(() => {});
   }
   function hideSheet() {
-    Animated.timing(sheetY, { toValue: 360, duration: 200, useNativeDriver: true }).start(() => {
+    Animated.timing(sheetY, { toValue: 420, duration: 200, useNativeDriver: true }).start(() => {
       setSheet(null);
       selRef.current = null;
+      pinsRef.current = [];
       pushPins();
     });
   }
 
-  async function onBounds(b: any) {
-    center.current = { lat: (b.minLat + b.maxLat) / 2, lon: (b.minLon + b.maxLon) / 2 };
-    try {
-      const pts = await pinsInBounds(b, 140);
-      pinsRef.current = pts
-        .filter((p) => Number(p.value_per_sqm) > 0)
-        .slice(0, 90)
-        .map((p, i) => ({
-          id: i, lat: p.lat, lon: p.lon, label: pesoK(p.value_per_sqm),
-          value_per_sqm: p.value_per_sqm, classification_code: p.classification_code,
-          street: p.street, barangay: p.barangay, city: p.city,
-        }));
-      pushPins();
-    } catch {
-      /* keep prior pins */
-    }
-  }
-
-  async function onTap(lat: number, lon: number) {
+  // Look up a spot, drop a gold marker + nearby markers, and open the sheet.
+  async function inspect(lat: number, lon: number, presetName?: string) {
     setBusy(true);
     try {
       const v = await nearestValue(lat, lon);
-      const name = v.street ? titleCase(v.street) : v.label || "Selected location";
-      const addr = [titleCase(v.barangay || ""), titleCase(v.city || "")].filter(Boolean).join(" · ") || "Tap a pin to inspect";
+      const nearby = (v.nearby || [])
+        .filter((p) => Number(p.value_per_sqm) > 0)
+        .sort((a, b) => (a.distance_m ?? 9e9) - (b.distance_m ?? 9e9));
+      const name = presetName || (v.street ? titleCase(v.street) : v.label || "Selected location");
+      const addr = [titleCase(v.barangay || ""), titleCase(v.city || "")].filter(Boolean).join(" · ") || "Tap a place to inspect";
       selRef.current = {
         lat: v.lat, lon: v.lon, label: pesoK(v.value_per_sqm), value_per_sqm: v.value_per_sqm,
         classification_code: v.classification_code, street: v.street, barangay: v.barangay, city: v.city,
       };
+      pinsRef.current = nearby.slice(0, 8).map((p, i) => ({
+        id: i, lat: p.lat, lon: p.lon, label: pesoK(p.value_per_sqm),
+        value_per_sqm: p.value_per_sqm, classification_code: p.classification_code,
+        street: p.street, barangay: p.barangay, city: p.city,
+      }));
       inject(`window.ZV.center(${v.lat},${v.lon})`);
       pushPins();
-      showSheet({ lat: v.lat, lon: v.lon, name, address: addr, value: v.value_per_sqm, code: v.classification_code });
-    } catch {
-      /* ignore */
+      showSheet({ lat: v.lat, lon: v.lon, name, address: addr, value: v.value_per_sqm, code: v.classification_code, nearby: nearby.slice(0, 3) });
     } finally {
       setBusy(false);
     }
   }
 
-  function onPin(pin: any) {
-    selRef.current = pin;
-    pushPins();
-    const name = pin.street ? titleCase(pin.street) : "Selected location";
-    const addr = [titleCase(pin.barangay || ""), titleCase(pin.city || "")].filter(Boolean).join(" · ") || "Zonal value";
-    showSheet({ lat: pin.lat, lon: pin.lon, name, address: addr, value: pin.value_per_sqm, code: pin.classification_code });
+  async function onPoi(lat: number, lon: number, placeId: string) {
+    setBusy(true);
+    let name: string | undefined;
+    try {
+      const d = await placeDetails(placeId);
+      if (d?.name) name = d.name;
+    } catch { /* ignore */ }
+    await inspect(lat, lon, name);
   }
 
   function onMessage(e: { nativeEvent: { data: string } }) {
     let m: any;
     try { m = JSON.parse(e.nativeEvent.data); } catch { return; }
-    if (m.type === "bounds") onBounds(m);
-    else if (m.type === "tap") onTap(m.lat, m.lon);
-    else if (m.type === "pin") onPin(m.pin);
+    if (m.type === "bounds") center.current = { lat: (m.minLat + m.maxLat) / 2, lon: (m.minLon + m.maxLon) / 2 };
+    else if (m.type === "poi") onPoi(m.lat, m.lon, m.placeId);
+    else if (m.type === "tap") inspect(m.lat, m.lon);
+    else if (m.type === "pin") inspect(m.pin.lat, m.pin.lon, m.pin.street ? titleCase(m.pin.street) : undefined);
   }
 
   function onChangeQ(t: string) {
@@ -121,8 +113,7 @@ export default function MapScreen() {
     if (debTimer.current) clearTimeout(debTimer.current);
     if (t.trim().length < 2) { setSugs([]); return; }
     debTimer.current = setTimeout(async () => {
-      const s = await placesAutocomplete(t, center.current.lat, center.current.lon);
-      setSugs(s);
+      setSugs(await placesAutocomplete(t, center.current.lat, center.current.lon));
     }, 240);
   }
   async function pick(s: Suggestion) {
@@ -133,8 +124,8 @@ export default function MapScreen() {
     try {
       const d = await placeDetails(s.placeId);
       if (d) {
-        inject(`window.ZV.center(${d.lat},${d.lon},16)`);
-        await onTap(d.lat, d.lon);
+        inject(`window.ZV.center(${d.lat},${d.lon},17)`);
+        await inspect(d.lat, d.lon, d.name);
       }
     } finally {
       setBusy(false);
@@ -151,8 +142,6 @@ export default function MapScreen() {
     router.push({ pathname: "/property", params: { lat: String(sheet.lat), lon: String(sheet.lon), name: sheet.name } } as any);
   }
 
-  const hz = (k: string) => haz?.hazards.find((h) => h.key === k);
-
   return (
     <View style={st.root}>
       <StatusBar style="dark" />
@@ -166,7 +155,6 @@ export default function MapScreen() {
         onMessage={onMessage}
       />
 
-      {/* top: search + avatar + segmented */}
       <SafeAreaView edges={["top"]} style={st.topWrap} pointerEvents="box-none">
         <View style={st.searchRow} pointerEvents="box-none">
           <View style={st.search}>
@@ -206,11 +194,16 @@ export default function MapScreen() {
             </Pressable>
           ))}
         </View>
+        {!sheet && (
+          <View style={st.hint} pointerEvents="none">
+            <Ionicons name="hand-left-outline" size={12} color="#fff" />
+            <Text style={st.hintT}>Tap any establishment to see its zonal value</Text>
+          </View>
+        )}
       </SafeAreaView>
 
       {busy && <View style={st.busy} pointerEvents="none"><ActivityIndicator color={Z.gold} /></View>}
 
-      {/* bottom sheet */}
       {sheet && (
         <Animated.View style={[st.sheet, { transform: [{ translateY: sheetY }] }]}>
           <View style={st.grip} />
@@ -225,22 +218,24 @@ export default function MapScreen() {
             <Text style={st.per}>/sqm</Text>
             <View style={{ marginLeft: "auto" }}>{!!sheet.code && <ClassChip code={sheet.code} />}</View>
           </View>
-          <View style={st.hzRow}>
-            {haz ? (
-              ["flood", "landslide", "liquefaction"].map((k) => {
-                const h = hz(k);
-                if (!h) return null;
-                return (
-                  <View key={k} style={st.hchip}>
-                    <View style={[st.hdot, { backgroundColor: h.color }]} />
-                    <Text style={st.htext}>{h.name} {h.text}</Text>
-                  </View>
-                );
-              })
-            ) : (
-              <Text style={st.hloading}>Reading hazards…</Text>
-            )}
+
+          <View style={st.hzWrap}>
+            {haz ? <HazardChips hazards={haz.hazards} /> : <Text style={st.hloading}>Reading 6 geohazards…</Text>}
           </View>
+
+          {sheet.nearby.length > 0 && (
+            <View style={st.nearWrap}>
+              <Text style={st.nearH}>NEARBY ZONAL VALUES</Text>
+              {sheet.nearby.map((p, i) => (
+                <Pressable key={i} style={st.nearRow} onPress={() => router.push({ pathname: "/property", params: { lat: String(p.lat), lon: String(p.lon) } } as any)}>
+                  <Text style={st.nearVal}>{peso(p.value_per_sqm)}<Text style={st.nearPer}> /sqm</Text></Text>
+                  <Text style={st.nearLine} numberOfLines={1}>{titleCase(p.street || p.barangay || "Nearby")}</Text>
+                  <ClassChip code={p.classification_code} size="sm" />
+                </Pressable>
+              ))}
+            </View>
+          )}
+
           <Pressable onPress={openReport} style={st.cta}>
             <Text style={st.ctaT}>View full report</Text>
             <Ionicons name="arrow-forward" size={16} color="#16223a" />
@@ -290,6 +285,9 @@ const st = StyleSheet.create({
   segT: { fontSize: 11.5, fontWeight: "700", color: Z.slate },
   segTOn: { color: "#fff" },
 
+  hint: { alignSelf: "center", marginTop: 9, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(16,26,48,0.82)", borderRadius: 100, paddingHorizontal: 12, paddingVertical: 6 },
+  hintT: { color: "#fff", fontSize: 10.5, fontWeight: "600" },
+
   busy: { position: "absolute", top: "46%", left: 0, right: 0, alignItems: "center" },
 
   sheet: {
@@ -305,11 +303,17 @@ const st = StyleSheet.create({
   cur: { fontFamily: SERIF, fontSize: 17, fontWeight: "600", color: Z.navy, marginBottom: 3 },
   vnum: { fontFamily: SERIF, fontSize: 29, fontWeight: "700", color: Z.ink, lineHeight: 30, letterSpacing: -0.5 },
   per: { fontSize: 10.5, color: Z.slate, fontWeight: "600", marginBottom: 3 },
-  hzRow: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#eef1f5" },
-  hchip: { flexDirection: "row", alignItems: "center", gap: 5 },
-  hdot: { width: 7, height: 7, borderRadius: 4 },
-  htext: { fontSize: 10.5, fontWeight: "700", color: Z.inkSoft },
+
+  hzWrap: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#eef1f5" },
   hloading: { fontSize: 11, color: Z.slate, fontStyle: "italic" },
+
+  nearWrap: { marginTop: 13, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#eef1f5", gap: 7 },
+  nearH: { fontSize: 8.5, letterSpacing: 1.3, color: Z.slate, fontWeight: "800" },
+  nearRow: { flexDirection: "row", alignItems: "center", gap: 9 },
+  nearVal: { fontFamily: SERIF, fontSize: 14, fontWeight: "700", color: Z.ink, width: 104 },
+  nearPer: { fontFamily: "System", fontSize: 9, color: Z.slate, fontWeight: "600" },
+  nearLine: { flex: 1, fontSize: 11.5, color: Z.inkSoft, fontWeight: "500" },
+
   cta: {
     marginTop: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7,
     backgroundColor: Z.gold, borderRadius: 13, paddingVertical: 13,

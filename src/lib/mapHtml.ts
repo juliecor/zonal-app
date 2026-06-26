@@ -23,8 +23,7 @@ export function mapHtml(key: string): string {
   function post(o){ try{ if(window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage==='function') window.ReactNativeWebView.postMessage(JSON.stringify(o)); }catch(e){} }
   function initMap(){
     map=new google.maps.Map(document.getElementById('map'),{
-      center:{lat:10.3157,lng:123.8854}, zoom:13, disableDefaultUI:true, gestureHandling:'greedy', clickableIcons:false,
-      styles:[{featureType:'poi',stylers:[{visibility:'off'}]},{featureType:'transit',elementType:'labels',stylers:[{visibility:'off'}]}]
+      center:{lat:10.3157,lng:123.8854}, zoom:16, disableDefaultUI:true, gestureHandling:'greedy', clickableIcons:true
     });
     overlay=new google.maps.OverlayView();
     overlay.onAdd=function(){ this.layer=document.createElement('div'); this.layer.style.position='absolute'; this.layer.style.top='0'; this.layer.style.left='0';
@@ -34,7 +33,10 @@ export function mapHtml(key: string): string {
     overlay.setMap(map);
     map.addListener('idle', function(){ var b=map.getBounds(); if(!b) return; var ne=b.getNorthEast(), sw=b.getSouthWest();
       post({type:'bounds', minLat:sw.lat(), maxLat:ne.lat(), minLon:sw.lng(), maxLon:ne.lng()}); });
-    map.addListener('click', function(e){ post({type:'tap', lat:e.latLng.lat(), lon:e.latLng.lng()}); });
+    map.addListener('click', function(e){
+      if(e.placeId){ e.stop(); post({type:'poi', lat:e.latLng.lat(), lon:e.latLng.lng(), placeId:e.placeId}); }
+      else { post({type:'tap', lat:e.latLng.lat(), lon:e.latLng.lng()}); }
+    });
     post({type:'ready'});
   }
   function render(){
