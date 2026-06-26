@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Z.navy },
   safe: { flex: 1, backgroundColor: Z.navy },
   web: { flex: 1, backgroundColor: Z.paper },
-  loading: { ...StyleSheet.absoluteFillObject, alignItems: "center", justifyContent: "center", backgroundColor: Z.paper },
+  loading: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", backgroundColor: Z.paper },
   logo: { width: 56, height: 56, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: Z.goldLite },
   logoT: { color: "#16223a", fontWeight: "800", fontSize: 28 },
   loadingT: { color: Z.slate, fontSize: 13, marginTop: 12, fontWeight: "600" },
