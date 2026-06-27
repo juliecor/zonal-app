@@ -73,11 +73,20 @@ export default function PropertyScreen() {
   const appliesTo = info ? [info.name, GROUP_LABEL[sel]].filter(Boolean).join(" · ") : undefined;
 
   function askAI() {
+    const hz = (k: string) => haz?.hazards.find((h) => h.key === k)?.text;
+    const [bgy, cty] = (info?.addr || "").split(" · ");
     router.push({
       pathname: "/assistant",
       params: {
-        q: `Tell me about ${name}${info?.addr ? ", " + info.addr : ""} — is it good value for the risk?`,
-        ctx: JSON.stringify({ classification: info?.code, zonalValue: shownValue, place: name, addr: info?.addr }),
+        q: `Give a professional assessment of ${name}${cty ? `, ${cty}` : ""} — is it good value for the risk?`,
+        ctx: JSON.stringify({
+          street: name, barangay: bgy, city: cty,
+          classification: info?.code, zonalValue: shownValue,
+          landUse: options.map((o) => `${o.label} ₱${o.value}/sqm`).join(", "),
+          flood: hz("flood"), landslide: hz("landslide"), stormSurge: hz("surge"),
+          fault: hz("fault"), liquefaction: hz("liquefaction"), tsunami: hz("tsunami"),
+          overallRisk: haz ? `${haz.riskLabel} (${haz.score.toFixed(1)} / 3.0)` : undefined,
+        }),
       },
     } as any);
   }

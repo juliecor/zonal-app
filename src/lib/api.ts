@@ -349,6 +349,20 @@ export async function authLogout(token: string): Promise<void> {
 export interface ChatMsg { role: "user" | "assistant"; content: string }
 export interface AssistantReply { meta: any; answer: string }
 
+// Steer the assistant: professional tone + answer short/partial questions helpfully.
+const PRIMING: ChatMsg[] = [
+  {
+    role: "user",
+    content:
+      "Act as a professional Philippine real-estate due-diligence analyst for Filipino Homes (zonalvalue.ph). " +
+      "Answer in clear, confident, client-ready language — concise and well-structured. " +
+      "If a question is short, vague, or incomplete, infer the most likely intent and give your best helpful answer; " +
+      "do not refuse or just ask for more info unless it is truly impossible to proceed, and then ask only ONE short clarifier. " +
+      "When relevant, reference the BIR zonal value, the land-use classification, and the geohazard profile, and end with a brief professional verdict.",
+  },
+  { role: "assistant", content: "Understood — I'll give concise, professional, client-ready assessments and do my best even with brief questions." },
+];
+
 /** Ask the AI assistant. The endpoint streams; we read the whole body, then split
  *  the first line (JSON metadata) from the answer text. */
 export async function askAssistant(
@@ -364,7 +378,7 @@ export async function askAssistant(
       body: JSON.stringify({
         question,
         domain: opts.domain ?? "cebu.zonalvalue.com",
-        history: (opts.history ?? []).slice(-12),
+        history: [...PRIMING, ...(opts.history ?? []).slice(-10)],
         context: opts.context ?? null,
       }),
       signal: ctrl.signal,
