@@ -6,6 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 
+import { Logo } from "@/components/Logo";
 import { PickerModal } from "@/components/PickerModal";
 import { ParcelCard } from "@/components/ParcelCard";
 import { SectionHeader } from "@/components/SectionHeader";
@@ -97,7 +98,7 @@ export default function ZonalsScreen() {
       <StatusBar style="light" />
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.navy }}>
         <View style={s.header}>
-          <View style={s.logo}><Text style={s.logoT}>Z</Text></View>
+          <Logo size={40} />
           <View>
             <Text style={s.brand}>Zonal Values</Text>
             <Text style={s.brandSub}>Search the official BIR database</Text>

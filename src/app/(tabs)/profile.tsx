@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useAuth } from "@/lib/auth";
 import { LoginScreen } from "@/components/LoginScreen";
+import { Logo } from "@/components/Logo";
 import { SERIF, titleCase, Z } from "@/theme/zonal";
 
 export default function ProfileScreen() {
@@ -25,7 +26,7 @@ export default function ProfileScreen() {
       <StatusBar style="light" />
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.navy }}>
         <View style={s.header}>
-          <View style={s.logo}><Text style={s.logoT}>Z</Text></View>
+          <Logo size={40} />
           <View>
             <Text style={s.brand}>Account</Text>
             <Text style={s.brandSub}>zonalvalue.ph · by Filipino Homes</Text>

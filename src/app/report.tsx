@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 
+import { Logo } from "@/components/Logo";
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
 import { nearestValue, resolveDomain, scanArea } from "@/lib/api";
 import { peso, SERIF, titleCase, Z } from "@/theme/zonal";
@@ -105,7 +106,7 @@ export default function ReportScreen() {
           </View>
 
           <View style={s.src}>
-            <View style={s.zTile}><Text style={s.zT}>Z</Text></View>
+            <Logo size={40} tile />
             <View style={{ flex: 1 }}>
               <Text style={s.srcMain}><Text style={{ fontWeight: "800", color: Z.ink }}>zonalvalue.ph</Text> · by Filipino Homes</Text>
               <Text style={s.srcSub}>BIR · PHIVOLCS · Project NOAH</Text>

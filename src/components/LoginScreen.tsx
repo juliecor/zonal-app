@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 import { useAuth } from "@/lib/auth";
 import { authResendOtp } from "@/lib/api";
+import { Logo } from "@/components/Logo";
 import { SERIF, Z } from "@/theme/zonal";
 
 type Mode = "signin" | "register" | "otpEmail" | "otpCode" | "verify";
@@ -143,7 +144,7 @@ export function LoginScreen() {
 
             {/* hero */}
             <View style={st.hero}>
-              <View style={st.logo}><Text style={st.logoT}>Z</Text></View>
+              <Logo size={58} />
               <Text style={st.brandWord}>zonalvalue<Text style={{ color: Z.goldLite }}>.</Text>ph</Text>
               <Text style={st.tagline}>Property due-diligence, <Text style={{ color: Z.goldLite, fontStyle: "italic" }}>precisely mapped.</Text></Text>
             </View>

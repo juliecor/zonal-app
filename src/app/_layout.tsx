@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { LoginScreen } from "@/components/LoginScreen";
+import { Logo } from "@/components/Logo";
 import { SERIF, Z } from "@/theme/zonal";
 
 // Hard gate: the app is only reachable after signing in (like the website).
@@ -17,7 +18,7 @@ function Gate({ children }: { children: ReactNode }) {
     return (
       <View style={g.splash}>
         <StatusBar style="light" />
-        <View style={g.logo}><Text style={g.logoT}>Z</Text></View>
+        <Logo size={70} />
         <Text style={g.brand}>zonalvalue.ph</Text>
         <ActivityIndicator color={Z.gold} style={{ marginTop: 18 }} />
       </View>
