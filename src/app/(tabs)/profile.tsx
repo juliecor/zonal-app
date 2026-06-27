@@ -1,4 +1,5 @@
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -34,7 +35,11 @@ export default function ProfileScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <View style={s.profCard}>
-          <View style={s.avatar}><Text style={s.avatarT}>{initials}</Text></View>
+          {user.avatar_url ? (
+            <Image source={{ uri: user.avatar_url }} style={s.avatar} contentFit="cover" transition={200} />
+          ) : (
+            <View style={s.avatar}><Text style={s.avatarT}>{initials}</Text></View>
+          )}
           <Text style={s.name}>{titleCase(user.name || `${user.first_name} ${user.last_name}`)}</Text>
           <Text style={s.email}>{user.email}</Text>
           {!!user.role && <View style={s.roleChip}><Text style={s.roleT}>{user.role.toUpperCase()}</Text></View>}

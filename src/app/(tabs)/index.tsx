@@ -3,6 +3,7 @@ import {
   ActivityIndicator, Animated, Keyboard, Pressable, StyleSheet, Text, TextInput, View,
 } from "react-native";
 import { WebView } from "react-native-webview";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -232,7 +233,11 @@ export default function MapScreen() {
             )}
           </View>
           <Pressable style={st.ava} onPress={() => router.push("/profile" as any)}>
-            <Text style={st.avaT}>{initials}</Text>
+            {user?.avatar_url ? (
+              <Image source={{ uri: user.avatar_url }} style={st.avaImg} contentFit="cover" />
+            ) : (
+              <Text style={st.avaT}>{initials}</Text>
+            )}
           </Pressable>
         </View>
 
@@ -353,11 +358,12 @@ const st = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 13.5, color: Z.ink, padding: 0 },
   ava: {
-    width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center",
+    width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", overflow: "hidden",
     backgroundColor: Z.goldLite, borderWidth: 2, borderColor: "#fff",
     shadowColor: "#0c1430", shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5,
   },
   avaT: { color: "#16223a", fontWeight: "800", fontSize: 12 },
+  avaImg: { width: "100%", height: "100%" },
 
   sugs: {
     marginHorizontal: 12, marginTop: 8, backgroundColor: "#fff", borderRadius: 16, overflow: "hidden",

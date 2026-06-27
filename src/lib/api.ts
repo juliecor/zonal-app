@@ -286,6 +286,7 @@ export async function resolveDomain(lat: number, lon: number, hintCity?: string,
 export interface AuthUser {
   id: number; name: string; email: string; role?: string; token_balance?: number;
   first_name?: string; middle_name?: string; last_name?: string; phone?: string;
+  avatar_url?: string | null; avatar_path?: string | null;
 }
 export interface AuthResponse { user: AuthUser; token: string }
 export type RegisterPayload = {
