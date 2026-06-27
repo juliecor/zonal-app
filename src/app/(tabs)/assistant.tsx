@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 
 import { ChatBubble } from "@/components/ChatBubble";
 import { askAssistant, type ChatMsg } from "@/lib/api";
@@ -27,9 +27,11 @@ export default function AssistantScreen() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false); // awaiting the reply
   const [typing, setTyping] = useState(false);    // letter-by-letter animation running
+  const [focused, setFocused] = useState(true);   // only react to the keyboard when on-screen
   const scroller = useRef<ScrollView>(null);
   const ctxRef = useRef<any>(null);
   const typeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fullRef = useRef("");                      // the full reply currently being typed
 
   useEffect(() => {
     if (params.ctx) {
@@ -42,10 +44,35 @@ export default function AssistantScreen() {
   // clean up the typewriter timer on unmount
   useEffect(() => () => { if (typeTimer.current) clearTimeout(typeTimer.current); }, []);
 
+  // Only let this screen handle the keyboard while it's focused (tabs stay mounted),
+  // so navigating/back on other screens doesn't make the input bar flicker. On blur,
+  // stop the typewriter and snap the reply to its full text.
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => {
+        setFocused(false);
+        if (typeTimer.current) { clearTimeout(typeTimer.current); typeTimer.current = null; }
+        if (fullRef.current) {
+          const full = fullRef.current;
+          fullRef.current = "";
+          setMessages((m) => {
+            if (!m.length) return m;
+            const copy = m.slice();
+            copy[copy.length - 1] = { role: "assistant", content: full };
+            return copy;
+          });
+          setTyping(false);
+        }
+      };
+    }, []),
+  );
+
   const scrollEnd = (animated = true) => requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated }));
 
   // Reveal the reply letter-by-letter into the last (assistant) bubble.
   function typeOut(full: string): Promise<void> {
+    fullRef.current = full;
     return new Promise((resolve) => {
       let i = 0;
       const tick = () => {
@@ -57,8 +84,8 @@ export default function AssistantScreen() {
           return copy;
         });
         scrollEnd(false);
-        if (i < full.length) typeTimer.current = setTimeout(tick, 14);
-        else resolve();
+        if (i < full.length) { typeTimer.current = setTimeout(tick, 14); }
+        else { fullRef.current = ""; resolve(); }
       };
       tick();
     });
@@ -95,6 +122,7 @@ export default function AssistantScreen() {
       <StatusBar style="light" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
+        enabled={focused}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.navy }}>
