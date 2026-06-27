@@ -9,6 +9,7 @@ import { useLocalSearchParams } from "expo-router";
 
 import { ChatBubble } from "@/components/ChatBubble";
 import { askAssistant, type ChatMsg } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { provinceToDomain } from "@/lib/landuse";
 import { SERIF, Z } from "@/theme/zonal";
 
@@ -20,6 +21,7 @@ const SUGGESTIONS = [
 ];
 
 export default function AssistantScreen() {
+  const { token } = useAuth();
   const params = useLocalSearchParams<{ q?: string; ctx?: string }>();
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
@@ -45,7 +47,7 @@ export default function AssistantScreen() {
     requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: true }));
     try {
       const domain = ctxRef.current?.province ? provinceToDomain(ctxRef.current.province) : "cebu.zonalvalue.com";
-      const { answer } = await askAssistant(q, { domain, history, context: ctxRef.current });
+      const { answer } = await askAssistant(q, { domain, history, context: ctxRef.current, token });
       setMessages((m) => [...m, { role: "assistant", content: answer || "Sorry, I couldn't reach the data just now. Please try again." }]);
     } catch {
       setMessages((m) => [...m, { role: "assistant", content: "I couldn't connect right now. Please try again." }]);

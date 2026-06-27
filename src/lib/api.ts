@@ -367,14 +367,18 @@ const PRIMING: ChatMsg[] = [
  *  the first line (JSON metadata) from the answer text. */
 export async function askAssistant(
   question: string,
-  opts: { domain?: string; history?: ChatMsg[]; context?: any } = {},
+  opts: { domain?: string; history?: ChatMsg[]; context?: any; token?: string | null } = {},
 ): Promise<AssistantReply> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 45000);
   try {
+    // Forward the signed-in token so the assistant can read protected zonal data
+    // (the website does this via the authToken cookie). Without it the lookups 401.
+    const headers: Record<string, string> = { "Content-Type": "application/json", Accept: "text/plain" };
+    if (opts.token) headers["Cookie"] = `authToken=${encodeURIComponent(opts.token)}`;
     const res = await fetch(`${WEB_BASE}/assistant`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "text/plain" },
+      headers,
       body: JSON.stringify({
         question,
         domain: opts.domain ?? "cebu.zonalvalue.com",
