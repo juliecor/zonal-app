@@ -1,13 +1,16 @@
 import { useEffect, useRef } from "react";
 import { AccessibilityInfo, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-import Svg, { Defs, G, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, { ClipPath, Defs, G, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import Animated, {
-  Easing, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withTiming,
+  Easing, runOnJS, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withTiming,
 } from "react-native-reanimated";
 
 import { Logo } from "@/components/Logo";
 import { PH_PATH, PH_RATIO, PH_TRANSFORM, PH_VIEWBOX } from "@/lib/phMap";
 import { SERIF, Z } from "@/theme/zonal";
+
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
+const [VB_X, VB_Y, VB_W, VB_H] = PH_VIEWBOX.split(" ").map(Number);
 
 // Value pins, placed as fractions of the map box (fx → right, fy → down).
 const PINS = [
@@ -22,12 +25,15 @@ export function Intro({ onDone }: { onDone: () => void }) {
   const mapH = mapW * PH_RATIO;
 
   const mapOpacity = useSharedValue(0);
-  const mapScale = useSharedValue(1.14);
-  const mapTilt = useSharedValue(18);
-  const mapY = useSharedValue(18);
+  const mapScale = useSharedValue(1.12);
+  const mapTilt = useSharedValue(34);   // strong camera tilt to start
+  const mapY = useSharedValue(22);
+  const reveal = useSharedValue(0);      // top→bottom wipe that "inks" the coastline
   const p0 = useSharedValue(0), p1 = useSharedValue(0), p2 = useSharedValue(0);
   const brandO = useSharedValue(0), brandY = useSharedValue(16);
   const root = useSharedValue(1);
+
+  const clipProps = useAnimatedProps(() => ({ height: reveal.value }));
 
   const finished = useRef(false);
   const finish = () => { if (!finished.current) { finished.current = true; onDone(); } };
@@ -39,22 +45,26 @@ export function Intro({ onDone }: { onDone: () => void }) {
     const pinSV = [p0, p1, p2];
 
     const run = () => {
-      mapOpacity.value = withTiming(1, { duration: 650 });
-      mapScale.value = withTiming(1, { duration: 2050, easing: E });
-      mapTilt.value = withTiming(0, { duration: 2050, easing: E });
-      mapY.value = withTiming(0, { duration: 1800, easing: E });
-      pinSV.forEach((sv, i) => { sv.value = withDelay(950 + i * 260, withTiming(1, { duration: 430, easing: pinE })); });
-      brandO.value = withDelay(1550, withTiming(1, { duration: 700 }));
-      brandY.value = withDelay(1550, withTiming(0, { duration: 700, easing: E }));
-      root.value = withDelay(3050, withTiming(0, { duration: 480 }, (fin) => { if (fin) runOnJS(finish)(); }));
+      mapOpacity.value = withTiming(1, { duration: 350 });
+      // coastline inks itself, top → bottom
+      reveal.value = withDelay(250, withTiming(VB_H, { duration: 2000, easing: Easing.inOut(Easing.quad) }));
+      // camera tilts up to level + eases out of the zoom
+      mapScale.value = withTiming(1, { duration: 2600, easing: E });
+      mapTilt.value = withDelay(500, withTiming(6, { duration: 2200, easing: E }));
+      mapY.value = withTiming(0, { duration: 2400, easing: E });
+      // value stamps pop as their region is revealed
+      pinSV.forEach((sv, i) => { sv.value = withDelay(1400 + i * 380, withTiming(1, { duration: 440, easing: pinE })); });
+      brandO.value = withDelay(2350, withTiming(1, { duration: 700 }));
+      brandY.value = withDelay(2350, withTiming(0, { duration: 700, easing: E }));
+      root.value = withDelay(3700, withTiming(0, { duration: 500 }, (fin) => { if (fin) runOnJS(finish)(); }));
     };
 
     AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
       if (cancelled) return;
       if (reduce) {
-        mapOpacity.value = 1; mapScale.value = 1; mapTilt.value = 0; mapY.value = 0;
+        mapOpacity.value = 1; mapScale.value = 1; mapTilt.value = 6; mapY.value = 0; reveal.value = VB_H;
         p0.value = 1; p1.value = 1; p2.value = 1; brandO.value = 1; brandY.value = 0;
-        setTimeout(finish, 1200);
+        setTimeout(finish, 1300);
       } else {
         run();
       }
@@ -105,9 +115,14 @@ export function Intro({ onDone }: { onDone: () => void }) {
               <LinearGradient id="ig" x1="0" y1="0" x2="1" y2="1">
                 <Stop offset="0" stopColor="#f3e2a6" /><Stop offset="0.5" stopColor="#e6c976" /><Stop offset="1" stopColor="#b8902f" />
               </LinearGradient>
+              <ClipPath id="wipe">
+                <AnimatedRect x={VB_X} y={VB_Y} width={VB_W} animatedProps={clipProps} />
+              </ClipPath>
             </Defs>
-            <G transform={PH_TRANSFORM} fill="url(#ig)">
-              <Path d={PH_PATH} />
+            <G clipPath="url(#wipe)">
+              <G transform={PH_TRANSFORM} fill="url(#ig)">
+                <Path d={PH_PATH} />
+              </G>
             </G>
           </Svg>
 
