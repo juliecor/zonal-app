@@ -1,159 +1,236 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
 
-import { getBarangays, getCities, PROVINCES } from "@/lib/api";
+import { PickerModal } from "@/components/PickerModal";
+import { ParcelCard } from "@/components/ParcelCard";
+import { SectionHeader } from "@/components/SectionHeader";
+import { useAuth } from "@/lib/auth";
+import {
+  getBarangays, getCities, getClassifications, getZonalValues,
+  PROVINCES, type ZonalRecord,
+} from "@/lib/api";
 import { titleCase, Z } from "@/theme/zonal";
 
-export default function BrowseScreen() {
+export default function ZonalsScreen() {
+  const { token } = useAuth();
+
   const [prov, setProv] = useState("CEBU");
   const [cities, setCities] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState(false);
-  const [q, setQ] = useState("");
   const [city, setCity] = useState<string | null>(null);
   const [brgys, setBrgys] = useState<string[]>([]);
-  const [bLoading, setBLoading] = useState(false);
+  const [brgy, setBrgy] = useState<string | null>(null);
+  const [classes, setClasses] = useState<string[]>([]);
+  const [cls, setCls] = useState<string | null>(null);
+  const [q, setQ] = useState("");
 
+  const [records, setRecords] = useState<ZonalRecord[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const [cityModal, setCityModal] = useState(false);
+  const [brgyModal, setBrgyModal] = useState(false);
+  const reqId = useRef(0);
+
+  // load cities when province changes
   useEffect(() => {
-    let alive = true;
-    setLoading(true); setErr(false); setCity(null); setBrgys([]); setQ("");
-    getCities(prov)
-      .then((c) => { if (alive) { setCities(c); setLoading(false); } })
-      .catch(() => { if (alive) { setErr(true); setCities([]); setLoading(false); } });
-    return () => { alive = false; };
+    setCity(null); setBrgy(null); setBrgys([]); setClasses([]); setCls(null);
+    setRecords([]); setTotal(0); setErr(null);
+    getCities(prov).then(setCities).catch(() => setCities([]));
   }, [prov]);
 
-  function openCity(c: string) {
-    if (city === c) { setCity(null); return; }
-    setCity(c); setBLoading(true); setBrgys([]);
-    getBarangays(prov, c)
-      .then((b) => setBrgys(b))
-      .catch(() => setBrgys([]))
-      .finally(() => setBLoading(false));
+  async function search(opts: { reset?: boolean; nextPage?: number } = {}) {
+    if (!city || !token) return;
+    const pageToLoad = opts.nextPage ?? 1;
+    const mine = ++reqId.current;
+    if (opts.reset !== false && pageToLoad === 1) { setLoading(true); setRecords([]); } else { setLoadingMore(true); }
+    setErr(null);
+    try {
+      const r = await getZonalValues(token, {
+        province: prov, city, barangay: brgy || undefined, classification_code: cls || undefined,
+        q: q.trim() || undefined, page: pageToLoad, per_page: 20,
+      });
+      if (mine !== reqId.current) return; // stale
+      setRecords((prev) => (pageToLoad === 1 ? r.data : [...prev, ...r.data]));
+      setTotal(r.total); setPage(r.current_page); setLastPage(r.last_page);
+    } catch (e: any) {
+      if (mine !== reqId.current) return;
+      setErr(e?.message === "OUT_OF_CREDITS" ? "OUT_OF_CREDITS" : e?.message === "UNAUTHORIZED" ? "UNAUTHORIZED" : "Couldn't load values. Try again.");
+      setRecords([]); setTotal(0);
+    } finally {
+      if (mine === reqId.current) { setLoading(false); setLoadingMore(false); }
+    }
   }
 
-  const filtered = cities.filter((c) => c.toLowerCase().includes(q.toLowerCase()));
+  function pickCity(c: string | null) {
+    setCity(c); setBrgy(null); setCls(null); setRecords([]); setTotal(0);
+    if (c) {
+      getBarangays(prov, c).then(setBrgys).catch(() => setBrgys([]));
+      getClassifications(prov, c).then(setClasses).catch(() => setClasses([]));
+      setTimeout(() => search({ nextPage: 1 }), 0);
+    }
+  }
+
+  // re-search when barangay / classification change (after a city is chosen)
+  useEffect(() => {
+    if (city) search({ nextPage: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brgy, cls]);
 
   return (
-    <View style={styles.root}>
+    <View style={s.root}>
       <StatusBar style="light" />
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.navy }}>
-        <View style={styles.header}>
-          <View style={styles.brandRow}>
-            <View style={styles.logo}><Text style={styles.logoT}>Z</Text></View>
-            <View>
-              <Text style={styles.brand}>zonalvalue<Text style={{ color: Z.goldLite }}>.</Text>ph</Text>
-              <Text style={styles.by}>BY FILIPINO HOMES</Text>
-            </View>
+        <View style={s.header}>
+          <View style={s.logo}><Text style={s.logoT}>Z</Text></View>
+          <View>
+            <Text style={s.brand}>Zonal Values</Text>
+            <Text style={s.brandSub}>Search the official BIR database</Text>
           </View>
-          <Text style={styles.h1}>Browse land value coverage</Text>
-          <Text style={styles.sub}>Live from the BIR zonal database</Text>
         </View>
       </SafeAreaView>
 
-      <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 44 }} keyboardShouldPersistTaps="handled">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipsRow}>
+      <ScrollView style={s.body} contentContainerStyle={{ paddingBottom: 44 }} keyboardShouldPersistTaps="handled">
+        {/* province chips */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsRow}>
           {PROVINCES.map((p) => {
             const on = p === prov;
             return (
-              <Pressable key={p} onPress={() => setProv(p)} style={[styles.chip, on && styles.chipOn]}>
-                <Text style={[styles.chipT, on && styles.chipTOn]}>{titleCase(p)}</Text>
+              <Pressable key={p} onPress={() => setProv(p)} style={[s.chip, on && s.chipOn]}>
+                <Text style={[s.chipT, on && s.chipTOn]}>{titleCase(p)}</Text>
               </Pressable>
             );
           })}
         </ScrollView>
 
-        <View style={styles.searchWrap}>
-          <TextInput
-            value={q} onChangeText={setQ}
-            placeholder={`Search ${titleCase(prov)} cities…`}
-            placeholderTextColor={Z.slate}
-            style={styles.search}
-            autoCorrect={false}
-          />
+        {/* city + barangay selectors */}
+        <View style={s.selectors}>
+          <Selector label="City / Municipality" value={city ? titleCase(city) : null} placeholder="Select a city" onPress={() => setCityModal(true)} />
+          <Selector label="Barangay" value={brgy ? titleCase(brgy) : city ? "All barangays" : null} placeholder="All barangays" disabled={!city} onPress={() => setBrgyModal(true)} />
         </View>
 
-        {loading ? (
-          <View style={styles.center}><ActivityIndicator color={Z.gold} /><Text style={styles.dim}>Loading {titleCase(prov)}…</Text></View>
-        ) : err ? (
-          <View style={styles.center}><Text style={styles.dim}>Couldn&apos;t reach the server. Tap a province to retry.</Text></View>
-        ) : (
-          <View style={styles.list}>
-            <Text style={styles.count}>{filtered.length} cities / municipalities</Text>
-            {filtered.map((c) => {
-              const open = city === c;
-              return (
-                <View key={c}>
-                  <Pressable onPress={() => openCity(c)} style={[styles.row, open && styles.rowOn]}>
-                    <Text style={styles.rowT}>{titleCase(c)}</Text>
-                    <Text style={styles.chev}>{open ? "▾" : "›"}</Text>
-                  </Pressable>
-                  {open && (
-                    <View style={styles.brgyBox}>
-                      <Text style={styles.brgyH}>Barangays in {titleCase(c)}</Text>
-                      {bLoading ? (
-                        <ActivityIndicator color={Z.gold} style={{ alignSelf: "flex-start", marginTop: 4 }} />
-                      ) : brgys.length ? (
-                        <View style={styles.brgyWrap}>
-                          {brgys.map((b) => (
-                            <View key={b} style={styles.brgyPill}><Text style={styles.brgyPillT}>{titleCase(b)}</Text></View>
-                          ))}
-                        </View>
-                      ) : (
-                        <Text style={styles.dim}>No barangays found.</Text>
-                      )}
-                      <Text style={styles.note}>Open the Map or Scan tab to see peso values + the 6-point hazard read for any spot here.</Text>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
+        {/* classification filter */}
+        {!!city && classes.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.clsRow}>
+            <Pressable onPress={() => setCls(null)} style={[s.clsChip, !cls && s.clsOn]}><Text style={[s.clsT, !cls && s.clsTOn]}>All</Text></Pressable>
+            {classes.map((c) => (
+              <Pressable key={c} onPress={() => setCls(c)} style={[s.clsChip, cls === c && s.clsOn]}>
+                <Text style={[s.clsT, cls === c && s.clsTOn]}>{c}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
+
+        {/* keyword search */}
+        {!!city && (
+          <View style={s.searchWrap}>
+            <Ionicons name="search" size={15} color={Z.slate} />
+            <TextInput
+              value={q} onChangeText={setQ} placeholder="Filter by street / subdivision…" placeholderTextColor={Z.slate}
+              style={s.search} returnKeyType="search" onSubmitEditing={() => search({ nextPage: 1 })} autoCorrect={false}
+            />
+            {q.length > 0 && <Pressable onPress={() => { setQ(""); search({ nextPage: 1 }); }} hitSlop={8}><Ionicons name="close-circle" size={16} color={Z.slate} /></Pressable>}
           </View>
         )}
+
+        {/* results */}
+        <View style={s.results}>
+          {!city ? (
+            <View style={s.center}><Ionicons name="business-outline" size={28} color={Z.slate} /><Text style={s.dim}>Pick a province and city to see its zonal values.</Text></View>
+          ) : loading ? (
+            <View style={s.center}><ActivityIndicator color={Z.gold} /><Text style={s.dim}>Loading {titleCase(city)}…</Text></View>
+          ) : err === "OUT_OF_CREDITS" ? (
+            <View style={s.center}><Ionicons name="server-outline" size={26} color={Z.slate} /><Text style={s.dim}>You're out of search credits. Request more from your account or ask an admin.</Text></View>
+          ) : err === "UNAUTHORIZED" ? (
+            <View style={s.center}><Ionicons name="lock-closed-outline" size={26} color={Z.slate} /><Text style={s.dim}>Please sign in again to search records.</Text></View>
+          ) : err ? (
+            <View style={s.center}><Text style={s.dim}>{err}</Text></View>
+          ) : records.length === 0 ? (
+            <View style={s.center}><Text style={s.dim}>No zonal records found for this filter.</Text></View>
+          ) : (
+            <>
+              <SectionHeader title={`${total} zonal value${total === 1 ? "" : "s"}`} subtitle={`${titleCase(city)}${brgy ? " · " + titleCase(brgy) : ""}`} count={cls || "all"} />
+              <View style={{ gap: 8, marginTop: 12 }}>
+                {records.map((r, i) => (
+                  <ParcelCard
+                    key={`${r.id}-${i}`}
+                    value={Number(r.value_per_sqm)}
+                    code={r.classification_code}
+                    line={titleCase(r.street_location || r.vicinity || r.barangay || "Parcel")}
+                    meta={[titleCase(r.barangay || ""), titleCase(r.city_municipality || "")].filter(Boolean).join(" · ")}
+                  />
+                ))}
+              </View>
+              {page < lastPage && (
+                <Pressable onPress={() => search({ nextPage: page + 1 })} style={s.more} disabled={loadingMore}>
+                  {loadingMore ? <ActivityIndicator color={Z.navy} /> : <Text style={s.moreT}>Load more ({total - records.length} left)</Text>}
+                </Pressable>
+              )}
+            </>
+          )}
+        </View>
       </ScrollView>
+
+      <PickerModal visible={cityModal} title={`Cities in ${titleCase(prov)}`} items={cities} onSelect={pickCity} onClose={() => setCityModal(false)} />
+      <PickerModal visible={brgyModal} title="Barangay" items={brgys} allLabel="All barangays" onSelect={(b) => setBrgy(b)} onClose={() => setBrgyModal(false)} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+function Selector({ label, value, placeholder, onPress, disabled }: { label: string; value: string | null; placeholder: string; onPress: () => void; disabled?: boolean }) {
+  return (
+    <Pressable onPress={disabled ? undefined : onPress} style={[s.sel, disabled && { opacity: 0.5 }]}>
+      <Text style={s.selLbl}>{label}</Text>
+      <View style={s.selRow}>
+        <Text style={[s.selVal, !value && s.selPlaceholder]} numberOfLines={1}>{value || placeholder}</Text>
+        <Ionicons name="chevron-down" size={16} color={Z.slate} />
+      </View>
+    </Pressable>
+  );
+}
+
+const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: Z.paper },
-  header: { paddingHorizontal: 18, paddingTop: 8, paddingBottom: 18 },
-  brandRow: { flexDirection: "row", alignItems: "center", gap: 11 },
+  header: { flexDirection: "row", alignItems: "center", gap: 11, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 16 },
   logo: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: Z.goldLite },
   logoT: { color: "#16223a", fontWeight: "800", fontSize: 19 },
-  brand: { color: Z.white, fontSize: 20, fontWeight: "700", letterSpacing: -0.3 },
-  by: { color: "#9fb0d8", fontSize: 9.5, letterSpacing: 2, marginTop: 3, fontWeight: "600" },
-  h1: { color: Z.white, fontSize: 23, fontWeight: "800", marginTop: 18, letterSpacing: -0.4 },
-  sub: { color: "#bcc8ee", fontSize: 12.5, marginTop: 5 },
+  brand: { color: Z.white, fontSize: 19, fontWeight: "800", letterSpacing: -0.3 },
+  brandSub: { color: "#9fb0d8", fontSize: 11, marginTop: 2, fontWeight: "600" },
 
   body: { flex: 1 },
-  chipsRow: { paddingHorizontal: 14, paddingVertical: 16, gap: 8 },
+  chipsRow: { paddingHorizontal: 14, paddingVertical: 14, gap: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 100, backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line },
   chipOn: { backgroundColor: Z.navy, borderColor: Z.navy },
   chipT: { fontSize: 13, fontWeight: "700", color: Z.slate },
   chipTOn: { color: Z.white },
 
-  searchWrap: { paddingHorizontal: 16, marginBottom: 6 },
-  search: { backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line, borderRadius: 13, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: Z.ink },
+  selectors: { flexDirection: "row", gap: 10, paddingHorizontal: 16 },
+  sel: { flex: 1, backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line, borderRadius: 13, paddingHorizontal: 13, paddingVertical: 10 },
+  selLbl: { fontSize: 9, fontWeight: "800", letterSpacing: 0.8, color: Z.slate, textTransform: "uppercase" },
+  selRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6, marginTop: 4 },
+  selVal: { flex: 1, fontSize: 14, fontWeight: "600", color: Z.ink },
+  selPlaceholder: { color: Z.slate, fontWeight: "500" },
 
-  center: { alignItems: "center", gap: 10, paddingVertical: 40 },
-  dim: { color: Z.slate, fontSize: 13, textAlign: "center", paddingHorizontal: 30 },
+  clsRow: { paddingHorizontal: 16, paddingTop: 12, gap: 7 },
+  clsChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line },
+  clsOn: { backgroundColor: "#fbf2d8", borderColor: Z.gold },
+  clsT: { fontSize: 12, fontWeight: "700", color: Z.slate },
+  clsTOn: { color: Z.navy },
 
-  list: { paddingHorizontal: 16, paddingTop: 8 },
-  count: { fontSize: 10.5, fontWeight: "700", letterSpacing: 1, textTransform: "uppercase", color: Z.slate, marginBottom: 10 },
-  row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line, borderRadius: 13, paddingHorizontal: 15, paddingVertical: 14, marginBottom: 8 },
-  rowOn: { borderColor: Z.gold, backgroundColor: "#fffdf6" },
-  rowT: { fontSize: 15, fontWeight: "600", color: Z.ink },
-  chev: { fontSize: 16, color: Z.gold, fontWeight: "700" },
+  searchWrap: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line, borderRadius: 13, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 13, paddingVertical: 11 },
+  search: { flex: 1, fontSize: 13.5, color: Z.ink, padding: 0 },
 
-  brgyBox: { backgroundColor: "#fffdf6", borderWidth: 1, borderColor: "#ece3cf", borderRadius: 13, padding: 13, marginTop: -2, marginBottom: 10 },
-  brgyH: { fontSize: 9.5, fontWeight: "800", letterSpacing: 1, textTransform: "uppercase", color: Z.navy, marginBottom: 9 },
-  brgyWrap: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  brgyPill: { backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line, borderRadius: 100, paddingHorizontal: 10, paddingVertical: 5 },
-  brgyPillT: { fontSize: 11.5, color: Z.inkSoft, fontWeight: "600" },
-  note: { marginTop: 12, fontSize: 11, color: Z.goldDeep, fontWeight: "600", lineHeight: 16 },
+  results: { paddingHorizontal: 16, paddingTop: 16 },
+  center: { alignItems: "center", justifyContent: "center", gap: 11, paddingVertical: 44, paddingHorizontal: 24 },
+  dim: { color: Z.slate, fontSize: 13, textAlign: "center", lineHeight: 19 },
+  more: { marginTop: 14, alignItems: "center", justifyContent: "center", backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line, borderRadius: 12, paddingVertical: 13 },
+  moreT: { color: Z.navy, fontWeight: "700", fontSize: 13 },
 });

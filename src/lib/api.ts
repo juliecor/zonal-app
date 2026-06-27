@@ -51,6 +51,50 @@ export async function getBarangays(province: string, city: string): Promise<stri
   return Array.isArray(j?.barangays) ? j.barangays : [];
 }
 
+export async function getClassifications(province: string, city?: string, barangay?: string): Promise<string[]> {
+  const p = new URLSearchParams({ province });
+  if (city) p.set("city", city);
+  if (barangay) p.set("barangay", barangay);
+  try {
+    const j = await getJSON(API_BASE, `/facets/classifications?${p.toString()}`);
+    return Array.isArray(j?.classifications) ? j.classifications : [];
+  } catch {
+    return [];
+  }
+}
+
+/* ───────────────────────── Zonal records search (auth) ───────────────────────── */
+
+export interface ZonalRecord {
+  id: number; street_location?: string; vicinity?: string;
+  barangay?: string; city_municipality?: string; province?: string;
+  classification_code?: string; value_per_sqm?: number;
+}
+export interface ZonalPage { data: ZonalRecord[]; total: number; current_page: number; last_page: number; per_page: number }
+
+/** Street-by-street BIR records (requires a signed-in token; deducts 1 credit, admins unlimited). */
+export async function getZonalValues(
+  token: string,
+  f: { province?: string; city?: string; barangay?: string; classification_code?: string; q?: string; page?: number; per_page?: number },
+): Promise<ZonalPage> {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(f)) if (v != null && v !== "") p.set(k, String(v));
+  const res = await fetch(`${API_BASE}/zonal-values?${p.toString()}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+  if (res.status === 402) throw new Error("OUT_OF_CREDITS");
+  if (res.status === 401 || res.status === 403) throw new Error("UNAUTHORIZED");
+  if (!res.ok) throw new Error(`Search failed (${res.status})`);
+  const j = await res.json();
+  return {
+    data: Array.isArray(j?.data) ? j.data : [],
+    total: j?.total ?? 0,
+    current_page: j?.current_page ?? 1,
+    last_page: j?.last_page ?? 1,
+    per_page: j?.per_page ?? 16,
+  };
+}
+
 export const PROVINCES = [
   "CEBU", "BOHOL", "ILOILO", "NEGROS OCCIDENTAL", "NEGROS ORIENTAL",
   "DAVAO DEL SUR", "DAVAO CITY", "NCR", "CAVITE", "LAGUNA",

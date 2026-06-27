@@ -28,7 +28,7 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="browse"
-        options={{ title: "Browse", tabBarIcon: ({ color, size }) => <Ionicons name="layers" size={size} color={color} /> }}
+        options={{ title: "Zonals", tabBarIcon: ({ color, size }) => <Ionicons name="pricetags-outline" size={size} color={color} /> }}
       />
       <Tabs.Screen
         name="profile"
