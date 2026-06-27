@@ -41,37 +41,34 @@ export default function AssistantScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.q, params.ctx]);
 
-  useEffect(() => () => { if (typeTimer.current) clearTimeout(typeTimer.current); }, []);
+  // Keyboard height via a plain listener (fires reliably on mount) — we lift the input
+  // by padding the bottom, with NO container resize, so there's no flicker.
+  useEffect(() => {
+    const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const s1 = Keyboard.addListener(showEvt, (e) => {
+      setKb(e.endCoordinates?.height ?? 0);
+      requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: true }));
+    });
+    const s2 = Keyboard.addListener(hideEvt, () => setKb(0));
+    return () => { s1.remove(); s2.remove(); if (typeTimer.current) clearTimeout(typeTimer.current); };
+  }, []);
 
-  // Keyboard handling, scoped to when this tab is focused — so other screens'
-  // keyboard events never touch it (that was the flicker), and we lift the input by
-  // padding (no container resize = no flash). On blur, stop the typewriter cleanly.
+  // Stop the typewriter cleanly when leaving the screen (snap reply to full text).
   useFocusEffect(
-    useCallback(() => {
-      const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-      const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-      const subShow = Keyboard.addListener(showEvt, (e) => {
-        setKb(e.endCoordinates?.height ?? 0);
-        requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: true }));
-      });
-      const subHide = Keyboard.addListener(hideEvt, () => setKb(0));
-      return () => {
-        subShow.remove();
-        subHide.remove();
-        setKb(0);
-        if (typeTimer.current) { clearTimeout(typeTimer.current); typeTimer.current = null; }
-        if (fullRef.current) {
-          const full = fullRef.current;
-          fullRef.current = "";
-          setMessages((m) => {
-            if (!m.length) return m;
-            const copy = m.slice();
-            copy[copy.length - 1] = { role: "assistant", content: full };
-            return copy;
-          });
-          setTyping(false);
-        }
-      };
+    useCallback(() => () => {
+      if (typeTimer.current) { clearTimeout(typeTimer.current); typeTimer.current = null; }
+      if (fullRef.current) {
+        const full = fullRef.current;
+        fullRef.current = "";
+        setMessages((m) => {
+          if (!m.length) return m;
+          const copy = m.slice();
+          copy[copy.length - 1] = { role: "assistant", content: full };
+          return copy;
+        });
+        setTyping(false);
+      }
     }, []),
   );
 
