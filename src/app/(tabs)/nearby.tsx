@@ -1,0 +1,209 @@
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
+import * as Location from "expo-location";
+
+import { ValueCard } from "@/components/ValueCard";
+import { HazardChips } from "@/components/HazardChips";
+import { ParcelCard } from "@/components/ParcelCard";
+import { SectionHeader } from "@/components/SectionHeader";
+import { ClassChip } from "@/components/ClassChip";
+import { hazardsAt, type HazardProfile } from "@/lib/hazards";
+import { nearestValue, resolveDomain, scanArea, type ZPoint } from "@/lib/api";
+import { SERIF, titleCase, Z } from "@/theme/zonal";
+
+interface Info { lat: number; lon: number; value: number | null; code: string | null; name: string; addr: string }
+type Phase = "idle" | "locating" | "ready" | "denied" | "error";
+
+export default function NearbyScreen() {
+  const [phase, setPhase] = useState<Phase>("locating");
+  const [info, setInfo] = useState<Info | null>(null);
+  const [haz, setHaz] = useState<HazardProfile | null>(null);
+  const [nearby, setNearby] = useState<ZPoint[]>([]);
+  const didInit = useRef(false);
+
+  useEffect(() => {
+    if (!didInit.current) { didInit.current = true; locate(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function locate() {
+    setPhase("locating");
+    setHaz(null);
+    try {
+      const perm = await Location.requestForegroundPermissionsAsync();
+      if (perm.status !== "granted") { setPhase("denied"); return; }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+
+      const near = await nearestValue(lat, lon).catch(() => null);
+      const domain = await resolveDomain(lat, lon, near?.city, near?.province).catch(() => "cebu.zonalvalue.com");
+      const d = 0.0032;
+      const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "").catch(() => null);
+
+      const scanPt = scan?.points?.[0];
+      const value = scanPt?.value_per_sqm
+        ?? scan?.classes?.find((c) => c.group === scan.defaultGroup)?.value
+        ?? near?.value_per_sqm ?? null;
+      const code = scanPt?.classification_code ?? near?.classification_code ?? null;
+      const name = scanPt?.street ? titleCase(scanPt.street) : near?.street ? titleCase(near.street) : "Your location";
+      const addr = [titleCase(scanPt?.barangay || near?.barangay || ""), titleCase(scanPt?.city || near?.city || "")].filter(Boolean).join(" · ") || "Current location";
+
+      setInfo({ lat, lon, value, code, name, addr });
+      setNearby((near?.nearby || []).filter((p) => Number(p.value_per_sqm) > 0).sort((a, b) => (a.distance_m ?? 9e9) - (b.distance_m ?? 9e9)).slice(0, 6));
+      hazardsAt(lat, lon).then(setHaz).catch(() => {});
+      setPhase("ready");
+    } catch {
+      setPhase("error");
+    }
+  }
+
+  function openReport() {
+    if (!info) return;
+    router.push({ pathname: "/property", params: { lat: String(info.lat), lon: String(info.lon), name: info.name } } as any);
+  }
+  function askAI() {
+    if (!info) return;
+    const hz = (k: string) => haz?.hazards.find((h) => h.key === k)?.text;
+    router.push({
+      pathname: "/assistant",
+      params: {
+        q: `Give a professional assessment of where I am now — ${info.name}${info.addr ? ", " + info.addr : ""}.`,
+        ctx: JSON.stringify({
+          street: info.name, classification: info.code, zonalValue: info.value,
+          flood: hz("flood"), landslide: hz("landslide"), stormSurge: hz("surge"),
+          overallRisk: haz ? `${haz.riskLabel} (${haz.score.toFixed(1)} / 3.0)` : undefined,
+        }),
+      },
+    } as any);
+  }
+
+  return (
+    <View style={s.root}>
+      <StatusBar style="light" />
+      <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.navy }}>
+        <View style={s.header}>
+          <View style={s.icon}><Ionicons name="navigate" size={17} color="#fff" /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.brand}>Near Me</Text>
+            <Text style={s.brandSub}>Zonal value where you're standing</Text>
+          </View>
+          {phase === "ready" && (
+            <Pressable onPress={locate} hitSlop={8} style={s.refresh}><Ionicons name="refresh" size={17} color="#fff" /></Pressable>
+          )}
+        </View>
+      </SafeAreaView>
+
+      {phase === "locating" ? (
+        <View style={s.center}>
+          <View style={s.bigIcon}><Ionicons name="navigate" size={26} color={Z.goldDeep} /></View>
+          <ActivityIndicator color={Z.gold} style={{ marginTop: 14 }} />
+          <Text style={s.dim}>Finding your location…</Text>
+        </View>
+      ) : phase === "denied" ? (
+        <View style={s.center}>
+          <Ionicons name="location-outline" size={30} color={Z.slate} />
+          <Text style={s.cTitle}>Location is off</Text>
+          <Text style={s.dim}>Allow location access so we can read the zonal value where you are.</Text>
+          <Pressable onPress={locate} style={s.cta}><Ionicons name="navigate" size={16} color="#16223a" /><Text style={s.ctaT}>Enable location</Text></Pressable>
+        </View>
+      ) : phase === "error" ? (
+        <View style={s.center}>
+          <Ionicons name="alert-circle-outline" size={30} color={Z.slate} />
+          <Text style={s.dim}>Couldn&apos;t get your location. Make sure GPS is on, then try again.</Text>
+          <Pressable onPress={locate} style={s.cta}><Ionicons name="refresh" size={16} color="#16223a" /><Text style={s.ctaT}>Try again</Text></Pressable>
+        </View>
+      ) : info ? (
+        <ScrollView style={s.body} contentContainerStyle={{ padding: 14, paddingBottom: 40 }}>
+          <View style={s.locRow}>
+            <Ionicons name="location" size={15} color={Z.gold} />
+            <Text style={s.locName} numberOfLines={1}>{info.name}</Text>
+            {!!info.code && <ClassChip code={info.code} size="sm" />}
+          </View>
+          <Text style={s.locAddr}>{info.addr}</Text>
+
+          <View style={{ marginTop: 12 }}>
+            <ValueCard value={info.value} label="Zonal value near you" appliesTo={info.addr} />
+          </View>
+
+          <View style={s.hazCard}>
+            {haz ? (
+              <>
+                <View style={s.hazTop}>
+                  <Text style={s.hazLbl}>GEOHAZARD READ</Text>
+                  <Text style={[s.hazRisk, { color: haz.riskColor }]}>{haz.riskLabel} · {haz.score.toFixed(1)}/3.0</Text>
+                </View>
+                <HazardChips hazards={haz.hazards} />
+              </>
+            ) : (
+              <View style={s.hazLoading}><ActivityIndicator color={Z.gold} size="small" /><Text style={s.dim}>Checking 6 geohazards…</Text></View>
+            )}
+          </View>
+
+          <View style={s.actions}>
+            <Pressable onPress={openReport} style={[s.cta, { flex: 1, marginTop: 0 }]}>
+              <Text style={s.ctaT}>Full report</Text><Ionicons name="arrow-forward" size={15} color="#16223a" />
+            </Pressable>
+            <Pressable onPress={askAI} style={s.aiBtn}>
+              <Text style={s.aiSpark}>✦</Text><Text style={s.aiT}>Ask AI</Text>
+            </Pressable>
+          </View>
+
+          {nearby.length > 0 && (
+            <View style={{ marginTop: 22 }}>
+              <SectionHeader title="Nearby zonal values" subtitle="Around your location" count={`${nearby.length} near`} />
+              <View style={{ gap: 8, marginTop: 12 }}>
+                {nearby.map((p, i) => (
+                  <ParcelCard
+                    key={i}
+                    value={Number(p.value_per_sqm)}
+                    code={p.classification_code}
+                    line={titleCase(p.street || p.barangay || "Nearby parcel")}
+                    meta={[titleCase(p.barangay || ""), p.distance_m != null ? `${Math.round(p.distance_m)}m` : ""].filter(Boolean).join(" · ")}
+                    onPress={() => router.push({ pathname: "/property", params: { lat: String(p.lat), lon: String(p.lon) } } as any)}
+                  />
+                ))}
+              </View>
+            </View>
+          )}
+        </ScrollView>
+      ) : null}
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: Z.paper },
+  header: { flexDirection: "row", alignItems: "center", gap: 11, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 14 },
+  icon: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: Z.navy2 },
+  brand: { color: Z.white, fontSize: 19, fontWeight: "800", letterSpacing: -0.3 },
+  brandSub: { color: "#9fb0d8", fontSize: 11, marginTop: 2, fontWeight: "600" },
+  refresh: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.12)" },
+
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 36 },
+  bigIcon: { width: 56, height: 56, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: "#fbf2d8" },
+  cTitle: { fontFamily: SERIF, fontSize: 18, fontWeight: "600", color: Z.ink, marginTop: 4 },
+  dim: { color: Z.slate, fontSize: 13, textAlign: "center", lineHeight: 19 },
+
+  body: { flex: 1 },
+  locRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  locName: { flex: 1, fontFamily: SERIF, fontSize: 18, fontWeight: "600", color: Z.ink },
+  locAddr: { fontSize: 12, color: Z.slate, marginTop: 3 },
+
+  hazCard: { marginTop: 14, backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line, borderRadius: 16, padding: 14 },
+  hazTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 11 },
+  hazLbl: { fontSize: 8.5, letterSpacing: 1.3, color: Z.slate, fontWeight: "800" },
+  hazRisk: { fontSize: 13, fontWeight: "800" },
+  hazLoading: { flexDirection: "row", alignItems: "center", gap: 10 },
+
+  actions: { flexDirection: "row", gap: 10, marginTop: 14 },
+  cta: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: Z.gold, borderRadius: 13, paddingVertical: 13, paddingHorizontal: 16, marginTop: 16, shadowColor: Z.goldDeep, shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  ctaT: { fontSize: 13, fontWeight: "800", color: "#16223a" },
+  aiBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: Z.navy, borderRadius: 13, paddingVertical: 13, paddingHorizontal: 18 },
+  aiSpark: { color: Z.goldLite, fontSize: 13 },
+  aiT: { color: "#fff", fontSize: 13, fontWeight: "700" },
+});

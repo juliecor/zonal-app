@@ -38,8 +38,8 @@ export default function TabsLayout() {
         options={{ title: "Map", tabBarIcon: ({ color, size }) => <Ionicons name="map" size={size} color={color} /> }}
       />
       <Tabs.Screen
-        name="scan"
-        options={{ title: "Scan", tabBarIcon: ({ color, size }) => <Ionicons name="scan" size={size} color={color} /> }}
+        name="nearby"
+        options={{ title: "Near Me", tabBarIcon: ({ color, size }) => <Ionicons name="navigate" size={size} color={color} /> }}
       />
       <Tabs.Screen
         name="assistant"
