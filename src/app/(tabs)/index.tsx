@@ -294,7 +294,14 @@ export default function MapScreen() {
         )}
       </SafeAreaView>
 
-      {busy && <View style={st.busy} pointerEvents="none"><ActivityIndicator color={Z.gold} /></View>}
+      {busy && (
+        <View style={st.loadWrap} pointerEvents="none">
+          <View style={st.loadPill}>
+            <ActivityIndicator color={Z.goldLite} size="small" />
+            <Text style={st.loadT}>Reading zonal value…</Text>
+          </View>
+        </View>
+      )}
 
       {sheet && (
         <Animated.View style={[st.sheet, { transform: [{ translateY: sheetY }] }]}>
@@ -397,7 +404,9 @@ const st = StyleSheet.create({
   hazDot: { width: 8, height: 8, borderRadius: 4 },
   hazRowT: { fontSize: 12.5, color: Z.inkSoft, fontWeight: "600" },
 
-  busy: { position: "absolute", top: "46%", left: 0, right: 0, alignItems: "center" },
+  loadWrap: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
+  loadPill: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "rgba(16,26,48,0.95)", borderRadius: 100, paddingHorizontal: 18, paddingVertical: 12, shadowColor: "#0c1430", shadowOpacity: 0.4, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 12 },
+  loadT: { color: "#fff", fontSize: 13, fontWeight: "700" },
 
   sheet: {
     position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: "#fff",

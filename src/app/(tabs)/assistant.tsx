@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView,
+  ActivityIndicator, Keyboard, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -27,7 +27,7 @@ export default function AssistantScreen() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false); // awaiting the reply
   const [typing, setTyping] = useState(false);    // letter-by-letter animation running
-  const [focused, setFocused] = useState(true);   // only react to the keyboard when on-screen
+  const [kb, setKb] = useState(0);                // keyboard height (manual, flicker-free)
   const scroller = useRef<ScrollView>(null);
   const ctxRef = useRef<any>(null);
   const typeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -41,17 +41,24 @@ export default function AssistantScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.q, params.ctx]);
 
-  // clean up the typewriter timer on unmount
   useEffect(() => () => { if (typeTimer.current) clearTimeout(typeTimer.current); }, []);
 
-  // Only let this screen handle the keyboard while it's focused (tabs stay mounted),
-  // so navigating/back on other screens doesn't make the input bar flicker. On blur,
-  // stop the typewriter and snap the reply to its full text.
+  // Keyboard handling, scoped to when this tab is focused — so other screens'
+  // keyboard events never touch it (that was the flicker), and we lift the input by
+  // padding (no container resize = no flash). On blur, stop the typewriter cleanly.
   useFocusEffect(
     useCallback(() => {
-      setFocused(true);
+      const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+      const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+      const subShow = Keyboard.addListener(showEvt, (e) => {
+        setKb(e.endCoordinates?.height ?? 0);
+        requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: true }));
+      });
+      const subHide = Keyboard.addListener(hideEvt, () => setKb(0));
       return () => {
-        setFocused(false);
+        subShow.remove();
+        subHide.remove();
+        setKb(0);
         if (typeTimer.current) { clearTimeout(typeTimer.current); typeTimer.current = null; }
         if (fullRef.current) {
           const full = fullRef.current;
@@ -70,7 +77,6 @@ export default function AssistantScreen() {
 
   const scrollEnd = (animated = true) => requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated }));
 
-  // Reveal the reply letter-by-letter into the last (assistant) bubble.
   function typeOut(full: string): Promise<void> {
     fullRef.current = full;
     return new Promise((resolve) => {
@@ -118,61 +124,55 @@ export default function AssistantScreen() {
   const busy = loading || typing;
 
   return (
-    <View style={s.root}>
+    <View style={[s.root, { paddingBottom: kb }]}>
       <StatusBar style="light" />
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        enabled={focused}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.navy }}>
-          <View style={s.head}>
-            <View style={s.bot}><Text style={s.botT}>✦</Text></View>
-            <View>
-              <Text style={s.title}>AI Zonal Assistant</Text>
-              <Text style={s.sub}>Grounded in BIR + PHIVOLCS</Text>
-            </View>
+      <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.navy }}>
+        <View style={s.head}>
+          <View style={s.bot}><Text style={s.botT}>✦</Text></View>
+          <View>
+            <Text style={s.title}>AI Zonal Assistant</Text>
+            <Text style={s.sub}>Grounded in BIR + PHIVOLCS</Text>
           </View>
-        </SafeAreaView>
-
-        <ScrollView ref={scroller} style={s.feed} contentContainerStyle={{ padding: 14, gap: 11, paddingBottom: 18 }} keyboardShouldPersistTaps="handled">
-          {empty && (
-            <View style={s.welcome}>
-              <View style={s.wBadge}><Text style={s.wBadgeT}>✦  YOUR ZONAL ANALYST</Text></View>
-              <Text style={s.wTitle}>Ask about any Philippine address.</Text>
-              <Text style={s.wSub}>Compare areas, weigh value against risk — answered in plain language and grounded in official BIR zonal values and PHIVOLCS / Project NOAH hazards.</Text>
-              <View style={s.chips}>
-                {SUGGESTIONS.map((sug) => (
-                  <Pressable key={sug} onPress={() => send(sug)} style={s.chip}>
-                    <Text style={s.chipT}>{sug}</Text>
-                    <Text style={s.chipArrow}>→</Text>
-                  </Pressable>
-                ))}
-              </View>
-              <Text style={s.tip}>Tip: even a short phrase works — try "banilad" or "cheapest in mandaue".</Text>
-            </View>
-          )}
-          {messages.map((m, i) => <ChatBubble key={i} role={m.role} text={m.content} />)}
-          {loading && (
-            <View style={s.typing}>
-              <View style={s.botMark}><Text style={s.botMarkT}>✦</Text></View>
-              <View style={s.typingBubble}><ActivityIndicator color={Z.goldDeep} size="small" /><Text style={s.typingT}>Analyzing…</Text></View>
-            </View>
-          )}
-        </ScrollView>
-
-        <View style={s.inbar}>
-          <TextInput
-            value={input} onChangeText={setInput}
-            placeholder="Ask about any address…" placeholderTextColor={Z.slate}
-            style={s.input} multiline onSubmitEditing={() => send(input)} returnKeyType="send"
-            onFocus={() => scrollEnd()}
-          />
-          <Pressable onPress={() => send(input)} style={[s.send, (!input.trim() || busy) && { opacity: 0.4 }]} disabled={!input.trim() || busy}>
-            <Text style={s.sendT}>↑</Text>
-          </Pressable>
         </View>
-      </KeyboardAvoidingView>
+      </SafeAreaView>
+
+      <ScrollView ref={scroller} style={s.feed} contentContainerStyle={{ padding: 14, gap: 11, paddingBottom: 18 }} keyboardShouldPersistTaps="handled">
+        {empty && (
+          <View style={s.welcome}>
+            <View style={s.wBadge}><Text style={s.wBadgeT}>✦  YOUR ZONAL ANALYST</Text></View>
+            <Text style={s.wTitle}>Ask about any Philippine address.</Text>
+            <Text style={s.wSub}>Compare areas, weigh value against risk — answered in plain language and grounded in official BIR zonal values and PHIVOLCS / Project NOAH hazards.</Text>
+            <View style={s.chips}>
+              {SUGGESTIONS.map((sug) => (
+                <Pressable key={sug} onPress={() => send(sug)} style={s.chip}>
+                  <Text style={s.chipT}>{sug}</Text>
+                  <Text style={s.chipArrow}>→</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={s.tip}>Tip: even a short phrase works — try "banilad" or "cheapest in mandaue".</Text>
+          </View>
+        )}
+        {messages.map((m, i) => <ChatBubble key={i} role={m.role} text={m.content} />)}
+        {loading && (
+          <View style={s.typing}>
+            <View style={s.botMark}><Text style={s.botMarkT}>✦</Text></View>
+            <View style={s.typingBubble}><ActivityIndicator color={Z.goldDeep} size="small" /><Text style={s.typingT}>Analyzing…</Text></View>
+          </View>
+        )}
+      </ScrollView>
+
+      <View style={s.inbar}>
+        <TextInput
+          value={input} onChangeText={setInput}
+          placeholder="Ask about any address…" placeholderTextColor={Z.slate}
+          style={s.input} multiline onSubmitEditing={() => send(input)} returnKeyType="send"
+          onFocus={() => scrollEnd()}
+        />
+        <Pressable onPress={() => send(input)} style={[s.send, (!input.trim() || busy) && { opacity: 0.4 }]} disabled={!input.trim() || busy}>
+          <Text style={s.sendT}>↑</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
