@@ -1,30 +1,25 @@
 import { useEffect, useRef } from "react";
 import { AccessibilityInfo, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-import Svg, { Circle, Defs, G, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, { Defs, G, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import Animated, {
   Easing, runOnJS, useAnimatedStyle, useSharedValue, withDelay, withTiming,
 } from "react-native-reanimated";
 
 import { Logo } from "@/components/Logo";
+import { PH_PATH, PH_RATIO, PH_TRANSFORM, PH_VIEWBOX } from "@/lib/phMap";
 import { SERIF, Z } from "@/theme/zonal";
 
-// Stylised Philippine archipelago (Luzon · Palawan · Visayas · Mindanao) in a 200×310 box.
-const LUZON = "M95 20 C82 20 73 30 73 44 C73 57 80 63 82 75 C84 89 75 99 80 115 C83 127 92 137 102 135 C108 134 110 124 110 114 C114 120 124 122 131 115 C140 106 134 90 127 82 C121 75 121 62 119 50 C116 31 109 20 95 20 Z";
-const PALAWAN = "M30 156 C26 160 28 168 34 176 C44 190 58 210 70 226 C74 231 80 229 79 222 C77 212 66 194 56 180 C47 168 40 156 34 154 C32 153 31 154 30 156 Z";
-const MINDANAO = "M120 212 C108 214 102 226 106 238 C110 252 104 262 112 274 C120 286 138 290 152 284 C168 277 176 262 172 246 C169 234 175 224 168 216 C160 208 140 208 120 212 Z";
-const VISAYAS = [[108, 156, 8], [128, 164, 7], [118, 180, 6], [140, 176, 6.5], [130, 194, 7], [112, 198, 5.5], [150, 188, 5]];
-
-// where the value pins sit, in the 200×310 map space
+// Value pins, placed as fractions of the map box (fx → right, fy → down).
 const PINS = [
-  { x: 98, y: 92, label: "₱72k" },   // Luzon / Metro Manila
-  { x: 126, y: 178, label: "₱47k" }, // Visayas / Cebu
-  { x: 142, y: 258, label: "₱20k" }, // Mindanao / Davao
+  { fx: 0.50, fy: 0.28, label: "₱72k" }, // Luzon / Metro Manila
+  { fx: 0.58, fy: 0.60, label: "₱47k" }, // Visayas / Cebu
+  { fx: 0.70, fy: 0.86, label: "₱20k" }, // Mindanao / Davao
 ];
 
 export function Intro({ onDone }: { onDone: () => void }) {
   const { width, height } = useWindowDimensions();
-  const mapW = Math.min(width * 0.66, 280);
-  const mapH = mapW * (310 / 200);
+  const mapW = Math.min(width * 0.72, 300);
+  const mapH = mapW * PH_RATIO;
 
   const mapOpacity = useSharedValue(0);
   const mapScale = useSharedValue(1.14);
@@ -105,22 +100,19 @@ export function Intro({ onDone }: { onDone: () => void }) {
 
       <View style={styles.center}>
         <Animated.View style={[{ width: mapW, height: mapH }, mapStyle]}>
-          <Svg width={mapW} height={mapH} viewBox="0 0 200 310">
+          <Svg width={mapW} height={mapH} viewBox={PH_VIEWBOX}>
             <Defs>
-              <LinearGradient id="ig" x1="40" y1="20" x2="170" y2="300" gradientUnits="userSpaceOnUse">
+              <LinearGradient id="ig" x1="0" y1="0" x2="1" y2="1">
                 <Stop offset="0" stopColor="#f3e2a6" /><Stop offset="0.5" stopColor="#e6c976" /><Stop offset="1" stopColor="#b8902f" />
               </LinearGradient>
             </Defs>
-            <G fill="url(#ig)" stroke="#fbeec2" strokeWidth={0.6} strokeOpacity={0.35}>
-              <Path d={LUZON} />
-              <Path d={PALAWAN} />
-              {VISAYAS.map(([cx, cy, r], i) => <Circle key={i} cx={cx} cy={cy} r={r} />)}
-              <Path d={MINDANAO} />
+            <G transform={PH_TRANSFORM} fill="url(#ig)">
+              <Path d={PH_PATH} />
             </G>
           </Svg>
 
           {PINS.map((p, i) => (
-            <Animated.View key={i} style={[styles.pin, { left: (p.x / 200) * mapW - 24, top: (p.y / 310) * mapH - 16 }, pinStyles[i]]}>
+            <Animated.View key={i} style={[styles.pin, { left: p.fx * mapW - 24, top: p.fy * mapH - 16 }, pinStyles[i]]}>
               <Text style={styles.pinT}>{p.label}</Text>
             </Animated.View>
           ))}
