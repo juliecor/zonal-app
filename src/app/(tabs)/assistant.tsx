@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  ActivityIndicator, Keyboard, Platform, Pressable, ScrollView,
+  ActivityIndicator, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, View,
 } from "react-native";
+import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -27,7 +28,6 @@ export default function AssistantScreen() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false); // awaiting the reply
   const [typing, setTyping] = useState(false);    // letter-by-letter animation running
-  const [kb, setKb] = useState(0);                // keyboard height (manual, flicker-free)
   const scroller = useRef<ScrollView>(null);
   const ctxRef = useRef<any>(null);
   const typeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -41,18 +41,12 @@ export default function AssistantScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.q, params.ctx]);
 
-  // Keyboard height via a plain listener (fires reliably on mount) — we lift the input
-  // by padding the bottom, with NO container resize, so there's no flicker.
-  useEffect(() => {
-    const showEvt = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
-    const hideEvt = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
-    const s1 = Keyboard.addListener(showEvt, (e) => {
-      setKb(e.endCoordinates?.height ?? 0);
-      requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: true }));
-    });
-    const s2 = Keyboard.addListener(hideEvt, () => setKb(0));
-    return () => { s1.remove(); s2.remove(); if (typeTimer.current) clearTimeout(typeTimer.current); };
-  }, []);
+  useEffect(() => () => { if (typeTimer.current) clearTimeout(typeTimer.current); }, []);
+
+  // Lift the input above the keyboard via reanimated (tracks the keyboard on the UI
+  // thread — reliable on Android edge-to-edge, no container resize, no flicker).
+  const keyboard = useAnimatedKeyboard();
+  const kbStyle = useAnimatedStyle(() => ({ paddingBottom: keyboard.height.value }));
 
   // Stop the typewriter cleanly when leaving the screen (snap reply to full text).
   useFocusEffect(
@@ -121,7 +115,7 @@ export default function AssistantScreen() {
   const busy = loading || typing;
 
   return (
-    <View style={[s.root, { paddingBottom: kb }]}>
+    <Animated.View style={[s.root, kbStyle]}>
       <StatusBar style="light" />
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.navy }}>
         <View style={s.head}>
@@ -170,7 +164,7 @@ export default function AssistantScreen() {
           <Text style={s.sendT}>↑</Text>
         </Pressable>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

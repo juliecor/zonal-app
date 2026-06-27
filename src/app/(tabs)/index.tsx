@@ -296,9 +296,12 @@ export default function MapScreen() {
 
       {busy && (
         <View style={st.loadWrap} pointerEvents="none">
-          <View style={st.loadPill}>
-            <ActivityIndicator color={Z.goldLite} size="small" />
-            <Text style={st.loadT}>Reading zonal value…</Text>
+          <View style={st.loadCard}>
+            <View style={st.loadIcon}><ActivityIndicator color={Z.goldDeep} /></View>
+            <View>
+              <Text style={st.loadTitle}>Reading this spot</Text>
+              <Text style={st.loadSub}>BIR value · 6-point hazards</Text>
+            </View>
           </View>
         </View>
       )}
@@ -405,8 +408,10 @@ const st = StyleSheet.create({
   hazRowT: { fontSize: 12.5, color: Z.inkSoft, fontWeight: "600" },
 
   loadWrap: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
-  loadPill: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "rgba(16,26,48,0.95)", borderRadius: 100, paddingHorizontal: 18, paddingVertical: 12, shadowColor: "#0c1430", shadowOpacity: 0.4, shadowRadius: 18, shadowOffset: { width: 0, height: 8 }, elevation: 12 },
-  loadT: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  loadCard: { flexDirection: "row", alignItems: "center", gap: 13, backgroundColor: "#fff", borderRadius: 16, paddingHorizontal: 18, paddingVertical: 14, borderWidth: 1, borderColor: "rgba(201,168,76,0.3)", shadowColor: "#0c1430", shadowOpacity: 0.28, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 14 },
+  loadIcon: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "#fbf2d8" },
+  loadTitle: { fontFamily: SERIF, fontSize: 14.5, fontWeight: "700", color: Z.ink },
+  loadSub: { fontSize: 10.5, color: Z.slate, marginTop: 2, fontWeight: "600" },
 
   sheet: {
     position: "absolute", left: 0, right: 0, bottom: 0, backgroundColor: "#fff",
