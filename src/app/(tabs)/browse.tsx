@@ -11,7 +11,7 @@ import { ParcelCard } from "@/components/ParcelCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { useAuth } from "@/lib/auth";
 import {
-  getBarangays, getCities, getClassifications, getZonalValues,
+  getBarangays, getCities, getClassifications, getProvinces, getZonalValues,
   PROVINCES, type ZonalRecord,
 } from "@/lib/api";
 import { titleCase, Z } from "@/theme/zonal";
@@ -19,6 +19,8 @@ import { titleCase, Z } from "@/theme/zonal";
 export default function ZonalsScreen() {
   const { token } = useAuth();
 
+  const [provinces, setProvinces] = useState<string[]>(PROVINCES);
+  const [provModal, setProvModal] = useState(false);
   const [prov, setProv] = useState("CEBU");
   const [cities, setCities] = useState<string[]>([]);
   const [city, setCity] = useState<string | null>(null);
@@ -39,6 +41,11 @@ export default function ZonalsScreen() {
   const [cityModal, setCityModal] = useState(false);
   const [brgyModal, setBrgyModal] = useState(false);
   const reqId = useRef(0);
+
+  // full province list (all provinces with data)
+  useEffect(() => {
+    getProvinces().then((list) => { if (list.length) setProvinces(list); }).catch(() => {});
+  }, []);
 
   // load cities when province changes
   useEffect(() => {
@@ -99,20 +106,13 @@ export default function ZonalsScreen() {
       </SafeAreaView>
 
       <ScrollView style={s.body} contentContainerStyle={{ paddingBottom: 44 }} keyboardShouldPersistTaps="handled">
-        {/* province chips */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipsRow}>
-          {PROVINCES.map((p) => {
-            const on = p === prov;
-            return (
-              <Pressable key={p} onPress={() => setProv(p)} style={[s.chip, on && s.chipOn]}>
-                <Text style={[s.chipT, on && s.chipTOn]}>{titleCase(p)}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        {/* province selector */}
+        <View style={[s.selectors, { marginTop: 14 }]}>
+          <Selector label="Province" value={titleCase(prov)} placeholder="Select province" onPress={() => setProvModal(true)} />
+        </View>
 
         {/* city + barangay selectors */}
-        <View style={s.selectors}>
+        <View style={[s.selectors, { marginTop: 10 }]}>
           <Selector label="City / Municipality" value={city ? titleCase(city) : null} placeholder="Select a city" onPress={() => setCityModal(true)} />
           <Selector label="Barangay" value={brgy ? titleCase(brgy) : city ? "All barangays" : null} placeholder="All barangays" disabled={!city} onPress={() => setBrgyModal(true)} />
         </View>
@@ -179,6 +179,7 @@ export default function ZonalsScreen() {
         </View>
       </ScrollView>
 
+      <PickerModal visible={provModal} title="Province" items={provinces} onSelect={(p) => { if (p) setProv(p); }} onClose={() => setProvModal(false)} />
       <PickerModal visible={cityModal} title={`Cities in ${titleCase(prov)}`} items={cities} onSelect={pickCity} onClose={() => setCityModal(false)} />
       <PickerModal visible={brgyModal} title="Barangay" items={brgys} allLabel="All barangays" onSelect={(b) => setBrgy(b)} onClose={() => setBrgyModal(false)} />
     </View>

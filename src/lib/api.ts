@@ -51,6 +51,22 @@ export async function getBarangays(province: string, city: string): Promise<stri
   return Array.isArray(j?.barangays) ? j.barangays : [];
 }
 
+/** Every province that has zonal data (from the DB's authoritative city/province index). */
+export async function getProvinces(): Promise<string[]> {
+  try {
+    const j = await getJSON(API_BASE, `/facets/city-province-index`);
+    const pairs = Array.isArray(j?.pairs) ? j.pairs : [];
+    const set = new Set<string>();
+    for (const p of pairs) {
+      const prov = Array.isArray(p) ? p[0] : p?.province;
+      if (prov) set.add(String(prov).trim());
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  } catch {
+    return [];
+  }
+}
+
 export async function getClassifications(province: string, city?: string, barangay?: string): Promise<string[]> {
   const p = new URLSearchParams({ province });
   if (city) p.set("city", city);
