@@ -25,9 +25,11 @@ export default function AssistantScreen() {
   const params = useLocalSearchParams<{ q?: string; ctx?: string }>();
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
+  const [loading, setLoading] = useState(false); // awaiting the reply
+  const [typing, setTyping] = useState(false);    // letter-by-letter animation running
   const scroller = useRef<ScrollView>(null);
   const ctxRef = useRef<any>(null);
+  const typeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (params.ctx) {
@@ -37,43 +39,75 @@ export default function AssistantScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.q, params.ctx]);
 
+  // clean up the typewriter timer on unmount
+  useEffect(() => () => { if (typeTimer.current) clearTimeout(typeTimer.current); }, []);
+
+  const scrollEnd = (animated = true) => requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated }));
+
+  // Reveal the reply letter-by-letter into the last (assistant) bubble.
+  function typeOut(full: string): Promise<void> {
+    return new Promise((resolve) => {
+      let i = 0;
+      const tick = () => {
+        i = Math.min(full.length, i + 2);
+        setMessages((m) => {
+          if (!m.length) return m;
+          const copy = m.slice();
+          copy[copy.length - 1] = { role: "assistant", content: full.slice(0, i) };
+          return copy;
+        });
+        scrollEnd(false);
+        if (i < full.length) typeTimer.current = setTimeout(tick, 14);
+        else resolve();
+      };
+      tick();
+    });
+  }
+
   async function send(text: string) {
     const q = text.trim();
-    if (!q || sending) return;
+    if (!q || loading || typing) return;
     setInput("");
     const history = messages.slice();
     setMessages((m) => [...m, { role: "user", content: q }]);
-    setSending(true);
-    requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: true }));
+    setLoading(true);
+    scrollEnd();
     try {
       const domain = ctxRef.current?.province ? provinceToDomain(ctxRef.current.province) : "cebu.zonalvalue.com";
       const { answer } = await askAssistant(q, { domain, history, context: ctxRef.current, token });
-      setMessages((m) => [...m, { role: "assistant", content: answer || "Sorry, I couldn't reach the data just now. Please try again." }]);
+      setLoading(false);
+      const reply = answer || "Sorry, I couldn't reach the data just now. Please try again.";
+      setMessages((m) => [...m, { role: "assistant", content: "" }]);
+      setTyping(true);
+      await typeOut(reply);
+      setTyping(false);
     } catch {
+      setLoading(false);
       setMessages((m) => [...m, { role: "assistant", content: "I couldn't connect right now. Please try again." }]);
-    } finally {
-      setSending(false);
-      requestAnimationFrame(() => scroller.current?.scrollToEnd({ animated: true }));
     }
   }
 
   const empty = messages.length === 0;
+  const busy = loading || typing;
 
   return (
     <View style={s.root}>
       <StatusBar style="light" />
-      <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.navy }}>
-        <View style={s.head}>
-          <View style={s.bot}><Text style={s.botT}>✦</Text></View>
-          <View>
-            <Text style={s.title}>AI Zonal Assistant</Text>
-            <Text style={s.sub}>Grounded in BIR + PHIVOLCS</Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.navy }}>
+          <View style={s.head}>
+            <View style={s.bot}><Text style={s.botT}>✦</Text></View>
+            <View>
+              <Text style={s.title}>AI Zonal Assistant</Text>
+              <Text style={s.sub}>Grounded in BIR + PHIVOLCS</Text>
+            </View>
           </View>
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView ref={scroller} style={s.feed} contentContainerStyle={{ padding: 14, gap: 11, paddingBottom: 20 }}>
+        <ScrollView ref={scroller} style={s.feed} contentContainerStyle={{ padding: 14, gap: 11, paddingBottom: 18 }} keyboardShouldPersistTaps="handled">
           {empty && (
             <View style={s.welcome}>
               <View style={s.wBadge}><Text style={s.wBadgeT}>✦  YOUR ZONAL ANALYST</Text></View>
@@ -91,7 +125,7 @@ export default function AssistantScreen() {
             </View>
           )}
           {messages.map((m, i) => <ChatBubble key={i} role={m.role} text={m.content} />)}
-          {sending && (
+          {loading && (
             <View style={s.typing}>
               <View style={s.botMark}><Text style={s.botMarkT}>✦</Text></View>
               <View style={s.typingBubble}><ActivityIndicator color={Z.goldDeep} size="small" /><Text style={s.typingT}>Analyzing…</Text></View>
@@ -104,8 +138,9 @@ export default function AssistantScreen() {
             value={input} onChangeText={setInput}
             placeholder="Ask about any address…" placeholderTextColor={Z.slate}
             style={s.input} multiline onSubmitEditing={() => send(input)} returnKeyType="send"
+            onFocus={() => scrollEnd()}
           />
-          <Pressable onPress={() => send(input)} style={[s.send, (!input.trim() || sending) && { opacity: 0.4 }]} disabled={!input.trim() || sending}>
+          <Pressable onPress={() => send(input)} style={[s.send, (!input.trim() || busy) && { opacity: 0.4 }]} disabled={!input.trim() || busy}>
             <Text style={s.sendT}>↑</Text>
           </Pressable>
         </View>
@@ -140,7 +175,7 @@ const s = StyleSheet.create({
   typingBubble: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderWidth: 1, borderColor: Z.line, borderRadius: 16, borderBottomLeftRadius: 5, paddingHorizontal: 13, paddingVertical: 11 },
   typingT: { color: Z.slate, fontSize: 12.5, fontStyle: "italic" },
 
-  inbar: { flexDirection: "row", alignItems: "flex-end", gap: 9, paddingHorizontal: 12, paddingTop: 10, paddingBottom: 26, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: Z.line },
+  inbar: { flexDirection: "row", alignItems: "flex-end", gap: 9, paddingHorizontal: 12, paddingTop: 10, paddingBottom: Platform.OS === "ios" ? 26 : 12, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: Z.line },
   input: { flex: 1, maxHeight: 110, backgroundColor: Z.paper, borderWidth: 1, borderColor: Z.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: Platform.OS === "ios" ? 12 : 9, color: Z.ink, fontSize: 14 },
   send: { width: 42, height: 42, borderRadius: 12, backgroundColor: Z.gold, alignItems: "center", justifyContent: "center", shadowColor: Z.goldDeep, shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
   sendT: { color: "#16223a", fontWeight: "800", fontSize: 19 },
