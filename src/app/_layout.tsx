@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -8,11 +8,15 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { LoginScreen } from "@/components/LoginScreen";
 import { Logo } from "@/components/Logo";
+import { Intro } from "@/components/Intro";
 import { SERIF, Z } from "@/theme/zonal";
 
-// Hard gate: the app is only reachable after signing in (like the website).
+// Hard gate: a cinematic intro on launch, then sign-in (like the website), then the app.
 function Gate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const [introDone, setIntroDone] = useState(false);
+
+  if (!introDone) return <Intro onDone={() => setIntroDone(true)} />;
 
   if (loading) {
     return (
