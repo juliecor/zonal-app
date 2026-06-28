@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -105,6 +105,12 @@ export default function ReportScreen() {
       riskLabel: haz.riskLabel, riskColor: haz.riskColor, checked: haz.checked, preparedBy,
     });
   }, [info, haz, mapUrl, dateStr, preparedBy]);
+
+  // Land straight on the preview — the summary behind it is the fallback after closing.
+  const autoPreviewed = useRef(false);
+  useEffect(() => {
+    if (html && !autoPreviewed.current) { autoPreviewed.current = true; setPreviewOpen(true); }
+  }, [html]);
 
   const onDownload = useCallback(async () => {
     if (!html) return;
