@@ -64,7 +64,7 @@ export default function NearbyScreen() {
 
   function openReport() {
     if (!info) return;
-    router.push({ pathname: "/property", params: { lat: String(info.lat), lon: String(info.lon), name: info.name } } as any);
+    router.push({ pathname: "/report", params: { lat: String(info.lat), lon: String(info.lon), name: info.name } } as any);
   }
   function askAI() {
     if (!info) return;
@@ -144,14 +144,18 @@ export default function NearbyScreen() {
             )}
           </View>
 
-          <View style={s.actions}>
-            <Pressable onPress={openReport} style={[s.cta, { flex: 1, marginTop: 0 }]}>
-              <Text style={s.ctaT}>Full report</Text><Ionicons name="arrow-forward" size={15} color="#16223a" />
-            </Pressable>
-            <Pressable onPress={askAI} style={s.aiBtn}>
-              <Text style={s.aiSpark}>✦</Text><Text style={s.aiT}>Ask AI</Text>
-            </Pressable>
-          </View>
+          {/* PRIMARY — branded, downloadable report for where you're standing */}
+          <Pressable onPress={openReport} style={s.report}>
+            <View style={s.reportIc}><Ionicons name="document-text" size={20} color={Z.navy} /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.reportT}>View Property Report</Text>
+              <Text style={s.reportSub}>Branded PDF · preview, download &amp; share</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#16223a" />
+          </Pressable>
+          <Pressable onPress={askAI} style={s.aiFull}>
+            <Text style={s.aiSpark}>✦</Text><Text style={s.aiT}>Ask the AI about this spot</Text>
+          </Pressable>
 
           {nearby.length > 0 && (
             <View style={{ marginTop: 22 }}>
@@ -200,10 +204,13 @@ const s = StyleSheet.create({
   hazRisk: { fontSize: 13, fontWeight: "800" },
   hazLoading: { flexDirection: "row", alignItems: "center", gap: 10 },
 
-  actions: { flexDirection: "row", gap: 10, marginTop: 14 },
   cta: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: Z.gold, borderRadius: 13, paddingVertical: 13, paddingHorizontal: 16, marginTop: 16, shadowColor: Z.goldDeep, shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
   ctaT: { fontSize: 13, fontWeight: "800", color: "#16223a" },
-  aiBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: Z.navy, borderRadius: 13, paddingVertical: 13, paddingHorizontal: 18 },
+  report: { marginTop: 16, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Z.gold, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16, shadowColor: Z.goldDeep, shadowOpacity: 0.45, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 7 },
+  reportIc: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.6)" },
+  reportT: { color: "#16223a", fontSize: 15.5, fontWeight: "800" },
+  reportSub: { color: "#3a3520", fontSize: 11, fontWeight: "600", marginTop: 2 },
+  aiFull: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: Z.navy, borderRadius: 13, paddingVertical: 13 },
   aiSpark: { color: Z.goldLite, fontSize: 13 },
   aiT: { color: "#fff", fontSize: 13, fontWeight: "700" },
 });
