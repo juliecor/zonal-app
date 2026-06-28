@@ -10,6 +10,7 @@ import { ValueCard } from "@/components/ValueCard";
 import { LandUseToggle } from "@/components/LandUseToggle";
 import { HazardPanel } from "@/components/HazardPanel";
 import { ParcelCard } from "@/components/ParcelCard";
+import { CostsCard } from "@/components/CostsCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
 import { nearestValue, resolveDomain, scanArea, type ZPoint } from "@/lib/api";
@@ -137,6 +138,12 @@ export default function PropertyScreen() {
             <Text style={s.aiSpark}>✦</Text>
             <Text style={s.aiT}>Ask the AI about this lot</Text>
           </Pressable>
+
+          {shownValue != null && (
+            <View style={{ marginTop: 18 }}>
+              <CostsCard valuePerSqm={shownValue} code={info?.code} />
+            </View>
+          )}
 
           {nearby.length > 0 && (
             <View style={{ marginTop: 22 }}>
