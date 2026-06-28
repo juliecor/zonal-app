@@ -99,7 +99,7 @@ export default function PropertyScreen() {
       <StatusBar style="dark" />
       <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.paper }}>
         <AppBar title={name} subtitle={info?.addr || "Establishment"} right={
-          <Pressable onPress={openReport} hitSlop={8} style={s.shareBtn}><Ionicons name="share-outline" size={18} color={Z.navy} /></Pressable>
+          <Pressable onPress={openReport} hitSlop={8} style={s.shareBtn}><Ionicons name="document-text-outline" size={18} color={Z.navy} /></Pressable>
         } />
       </SafeAreaView>
 
@@ -122,6 +122,16 @@ export default function PropertyScreen() {
               <View style={s.hazLoad}><ActivityIndicator color={Z.gold} size="small" /><Text style={s.dim}>Checking 6 geohazards…</Text></View>
             )}
           </View>
+
+          {/* PRIMARY deliverable — a branded, downloadable property report */}
+          <Pressable onPress={openReport} style={s.report}>
+            <View style={s.reportIc}><Ionicons name="document-text" size={20} color={Z.navy} /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.reportT}>View Property Report</Text>
+              <Text style={s.reportSub}>Branded PDF · preview, download & share</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#16223a" />
+          </Pressable>
 
           <Pressable onPress={askAI} style={s.ai}>
             <Text style={s.aiSpark}>✦</Text>
@@ -160,7 +170,11 @@ const s = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 30 },
   dim: { color: Z.slate, fontSize: 12.5, textAlign: "center" },
   hazLoad: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line, borderRadius: 16, padding: 16 },
-  ai: { marginTop: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: Z.navy, borderRadius: 13, paddingVertical: 13 },
+  report: { marginTop: 16, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Z.gold, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16, shadowColor: Z.goldDeep, shadowOpacity: 0.45, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 7 },
+  reportIc: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.6)" },
+  reportT: { color: "#16223a", fontSize: 15.5, fontWeight: "800" },
+  reportSub: { color: "#3a3520", fontSize: 11, fontWeight: "600", marginTop: 2 },
+  ai: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: Z.navy, borderRadius: 13, paddingVertical: 13 },
   aiSpark: { color: Z.goldLite, fontSize: 14 },
   aiT: { color: "#fff", fontSize: 13, fontWeight: "700" },
   note: { marginTop: 18, fontSize: 10, color: Z.slate, lineHeight: 15, textAlign: "center" },

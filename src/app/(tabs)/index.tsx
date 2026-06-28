@@ -345,7 +345,7 @@ export default function MapScreen() {
           )}
 
           <Pressable onPress={openReport} style={st.cta}>
-            <Text style={st.ctaT}>View full report</Text>
+            <Text style={st.ctaT}>View full details &amp; report</Text>
             <Ionicons name="arrow-forward" size={16} color="#16223a" />
           </Pressable>
         </Animated.View>

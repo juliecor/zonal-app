@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { WebView } from "react-native-webview";
@@ -8,7 +8,6 @@ import * as Sharing from "expo-sharing";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 
-import { Logo } from "@/components/Logo";
 import { useAuth } from "@/lib/auth";
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
 import { nearestValue, resolveDomain, scanArea } from "@/lib/api";
@@ -181,18 +180,6 @@ export default function ReportScreen() {
             <Cell k="Fault" v={fault?.text ?? "—"} c={fault?.color ?? Z.slate} />
           </View>
 
-          <View style={s.src}>
-            <Logo size={40} tile />
-            <View style={{ flex: 1 }}>
-              <Text style={s.srcMain}><Text style={{ fontWeight: "800", color: Z.ink }}>zonalvalue.ph</Text> · by Filipino Homes</Text>
-              <Text style={s.srcSub}>BIR · PHIVOLCS · Project NOAH</Text>
-            </View>
-            <Pressable onPress={() => Linking.openURL("https://zonalvalue.ph")} style={s.openLive}>
-              <Text style={s.openLiveT}>Open live</Text>
-              <Ionicons name="open-outline" size={13} color={Z.navy} />
-            </Pressable>
-          </View>
-
           <Text style={s.note}>Zonal values are BIR-assessed references, not market prices. Hazard overlays from PHIVOLCS &amp; Project NOAH. For due-diligence reference only.</Text>
         </ScrollView>
       )}
@@ -268,13 +255,7 @@ const s = StyleSheet.create({
   cellV: { fontSize: 13, fontWeight: "800", marginTop: 4 },
   cellSub: { fontSize: 8.5, color: Z.slate, marginTop: 2 },
 
-  src: { flexDirection: "row", alignItems: "center", gap: 11, marginTop: 22, paddingTop: 16, borderTopWidth: 1, borderTopColor: Z.line, borderStyle: "dashed" },
-  srcMain: { fontSize: 11, color: Z.slate },
-  srcSub: { fontSize: 10, color: Z.slate, marginTop: 2 },
-  openLive: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#eef1fa", borderRadius: 100, paddingHorizontal: 12, paddingVertical: 7 },
-  openLiveT: { fontSize: 11.5, fontWeight: "700", color: Z.navy },
-
-  note: { marginTop: 20, fontSize: 10, color: Z.slate, lineHeight: 15 },
+  note: { marginTop: 24, fontSize: 10, color: Z.slate, lineHeight: 15, paddingTop: 16, borderTopWidth: 1, borderTopColor: Z.line, borderStyle: "dashed" },
 
   downloadBtn: { margin: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: Z.gold, borderRadius: 13, paddingVertical: 15, shadowColor: Z.goldDeep, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 7 },
   downloadT: { color: "#16223a", fontWeight: "800", fontSize: 15 },
