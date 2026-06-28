@@ -9,22 +9,24 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { LoginScreen } from "@/components/LoginScreen";
 import { Logo } from "@/components/Logo";
 import { Intro } from "@/components/Intro";
-import { SERIF, Z } from "@/theme/zonal";
+import { ThemeProvider, useTheme } from "@/theme/theme";
+import { SERIF } from "@/theme/zonal";
 
 // Hard gate: a cinematic intro on launch, then sign-in (like the website), then the app.
 function Gate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
+  const { c } = useTheme();
   const [introDone, setIntroDone] = useState(false);
 
   if (!introDone) return <Intro onDone={() => setIntroDone(true)} />;
 
   if (loading) {
     return (
-      <View style={g.splash}>
+      <View style={[g.splash, { backgroundColor: c.isDark ? c.paper : "#0f1c3c" }]}>
         <StatusBar style="light" />
         <Logo size={70} />
         <Text style={g.brand}>zonalvalue.ph</Text>
-        <ActivityIndicator color={Z.gold} style={{ marginTop: 18 }} />
+        <ActivityIndicator color={c.gold} style={{ marginTop: 18 }} />
       </View>
     );
   }
@@ -36,23 +38,25 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <Gate>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(tabs)" />
-              <Stack.Screen name="property" options={{ presentation: "card", animation: "slide_from_right" }} />
-              <Stack.Screen name="report" options={{ presentation: "card", animation: "slide_from_bottom" }} />
-            </Stack>
-          </Gate>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <Gate>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(tabs)" />
+                <Stack.Screen name="property" options={{ presentation: "card", animation: "slide_from_right" }} />
+                <Stack.Screen name="report" options={{ presentation: "card", animation: "slide_from_bottom" }} />
+              </Stack>
+            </Gate>
+          </AuthProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
 
 const g = StyleSheet.create({
-  splash: { flex: 1, backgroundColor: "#0f1c3c", alignItems: "center", justifyContent: "center" },
-  logo: { width: 60, height: 60, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: Z.goldLite },
+  splash: { flex: 1, alignItems: "center", justifyContent: "center" },
+  logo: { width: 60, height: 60, borderRadius: 17, alignItems: "center", justifyContent: "center" },
   logoT: { color: "#16223a", fontWeight: "800", fontSize: 30, fontFamily: SERIF },
   brand: { color: "#fff", fontSize: 17, fontWeight: "700", marginTop: 14, letterSpacing: -0.3 },
 });

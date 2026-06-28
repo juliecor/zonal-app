@@ -12,7 +12,8 @@ import { useAuth } from "@/lib/auth";
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
 import { nearestValue, resolveDomain, scanArea } from "@/lib/api";
 import { buildReportHtml } from "@/lib/reportHtml";
-import { peso, titleCase, Z } from "@/theme/zonal";
+import { peso, titleCase } from "@/theme/zonal";
+import { useTheme, type Palette } from "@/theme/theme";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -51,6 +52,8 @@ export default function ReportScreen() {
   const lat = Number(params.lat);
   const lon = Number(params.lon);
   const { user } = useAuth();
+  const { c } = useTheme();
+  const s = useMemo(() => makeStyles(c), [c]);
 
   const [info, setInfo] = useState<{ name: string; city: string; value: number | null; code: string } | null>(null);
   const [haz, setHaz] = useState<HazardProfile | null>(null);
@@ -131,7 +134,7 @@ export default function ReportScreen() {
   return (
     <View style={s.root}>
       <StatusBar style="light" />
-      <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.navy }}>
+      <SafeAreaView edges={["top"]} style={{ backgroundColor: c.header }}>
         <View style={s.bar}>
           <Pressable onPress={() => router.back()} hitSlop={10} style={s.barIc}><Ionicons name="chevron-back" size={18} color="#fff" /></Pressable>
           <Text style={s.barTitle} numberOfLines={1}>{title}</Text>
@@ -144,12 +147,12 @@ export default function ReportScreen() {
         <WebView originWhitelist={["*"]} source={{ html }} style={{ flex: 1, backgroundColor: "#fff" }} />
       ) : (
         <View style={s.center}>
-          <ActivityIndicator color={Z.gold} />
+          <ActivityIndicator color={c.gold} />
           <Text style={s.dim}>Preparing your report…</Text>
         </View>
       )}
 
-      <SafeAreaView edges={["bottom"]} style={{ backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: Z.line }}>
+      <SafeAreaView edges={["bottom"]} style={{ backgroundColor: c.card, borderTopWidth: 1, borderTopColor: c.line }}>
         <Pressable onPress={onDownload} disabled={downloading || !html} style={({ pressed }) => [s.downloadBtn, (downloading || !html || pressed) && { opacity: 0.6 }]}>
           {downloading ? <ActivityIndicator color="#16223a" /> : (
             <>
@@ -163,14 +166,16 @@ export default function ReportScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#fff" },
-  bar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
-  barIc: { width: 32, height: 32, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.12)" },
-  barTitle: { flex: 1, textAlign: "center", color: "#fff", fontSize: 14, fontWeight: "700", letterSpacing: 0.2 },
-  accent: { height: 2, backgroundColor: Z.gold },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: "#fff" },
-  dim: { color: Z.slate, fontSize: 12.5 },
-  downloadBtn: { margin: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: Z.gold, borderRadius: 13, paddingVertical: 15, shadowColor: Z.goldDeep, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 7 },
-  downloadT: { color: "#16223a", fontWeight: "800", fontSize: 15 },
-});
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.card },
+    bar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
+    barIc: { width: 32, height: 32, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.12)" },
+    barTitle: { flex: 1, textAlign: "center", color: "#fff", fontSize: 14, fontWeight: "700", letterSpacing: 0.2 },
+    accent: { height: 2, backgroundColor: c.gold },
+    center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: c.card },
+    dim: { color: c.slate, fontSize: 12.5 },
+    downloadBtn: { margin: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.gold, borderRadius: 13, paddingVertical: 15, shadowColor: c.goldDeep, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 7 },
+    downloadT: { color: "#16223a", fontWeight: "800", fontSize: 15 },
+  });
+}

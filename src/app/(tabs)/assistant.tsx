@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, View,
@@ -13,7 +13,8 @@ import { askAssistant, type ChatMsg } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { provinceToDomain } from "@/lib/landuse";
 import { computeCosts, estimatedValue } from "@/lib/phComputations";
-import { SERIF, Z } from "@/theme/zonal";
+import { useTheme, type Palette } from "@/theme/theme";
+import { SERIF } from "@/theme/zonal";
 
 const SUGGESTIONS = [
   "What's the commercial zonal value in Lahug, Cebu City?",
@@ -48,6 +49,8 @@ function ctxCostReference(ctx: any): string {
 
 export default function AssistantScreen() {
   const { token } = useAuth();
+  const { c } = useTheme();
+  const s = useMemo(() => makeStyles(c), [c]);
   const params = useLocalSearchParams<{ q?: string; ctx?: string }>();
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
@@ -144,7 +147,7 @@ export default function AssistantScreen() {
   return (
     <Animated.View style={[s.root, kbStyle]}>
       <StatusBar style="light" />
-      <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.navy }}>
+      <SafeAreaView edges={["top"]} style={{ backgroundColor: c.header }}>
         <View style={s.head}>
           <View style={s.bot}><Text style={s.botT}>✦</Text></View>
           <View>
@@ -175,7 +178,7 @@ export default function AssistantScreen() {
         {loading && (
           <View style={s.typing}>
             <View style={s.botMark}><Text style={s.botMarkT}>✦</Text></View>
-            <View style={s.typingBubble}><ActivityIndicator color={Z.goldDeep} size="small" /><Text style={s.typingT}>Analyzing…</Text></View>
+            <View style={s.typingBubble}><ActivityIndicator color={c.goldDeep} size="small" /><Text style={s.typingT}>Analyzing…</Text></View>
           </View>
         )}
       </ScrollView>
@@ -183,7 +186,7 @@ export default function AssistantScreen() {
       <View style={s.inbar}>
         <TextInput
           value={input} onChangeText={setInput}
-          placeholder="Ask about any address…" placeholderTextColor={Z.slate}
+          placeholder="Ask about any address…" placeholderTextColor={c.slate}
           style={s.input} multiline onSubmitEditing={() => send(input)} returnKeyType="send"
           onFocus={() => scrollEnd()}
         />
@@ -195,34 +198,36 @@ export default function AssistantScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Z.paper },
-  head: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 15, paddingVertical: 11 },
-  bot: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: Z.goldLite },
-  botT: { color: "#16223a", fontWeight: "800", fontSize: 14 },
-  title: { fontFamily: SERIF, fontSize: 15, fontWeight: "600", color: "#fff" },
-  sub: { fontSize: 9.5, color: "#9fb0d8", fontWeight: "600", marginTop: 1 },
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.paper },
+    head: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 15, paddingVertical: 11 },
+    bot: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: c.goldLite },
+    botT: { color: "#16223a", fontWeight: "800", fontSize: 14 },
+    title: { fontFamily: SERIF, fontSize: 15, fontWeight: "600", color: "#fff" },
+    sub: { fontSize: 9.5, color: "#9fb0d8", fontWeight: "600", marginTop: 1 },
 
-  feed: { flex: 1, backgroundColor: Z.paper },
-  welcome: { paddingVertical: 8 },
-  wBadge: { alignSelf: "flex-start", backgroundColor: "#fbf2d8", borderWidth: 1, borderColor: "rgba(201,168,76,0.4)", borderRadius: 100, paddingHorizontal: 11, paddingVertical: 5, marginBottom: 14 },
-  wBadgeT: { fontSize: 9.5, fontWeight: "800", letterSpacing: 1, color: Z.goldDeep },
-  wTitle: { fontFamily: SERIF, fontSize: 22, color: Z.ink, fontWeight: "700", lineHeight: 27 },
-  wSub: { fontSize: 13, color: Z.slate, lineHeight: 20, marginTop: 9 },
-  chips: { marginTop: 18, gap: 9 },
-  chip: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, backgroundColor: "#fff", borderWidth: 1, borderColor: Z.line, borderRadius: 13, paddingHorizontal: 14, paddingVertical: 13, shadowColor: "#0c1430", shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
-  chipT: { color: Z.inkSoft, fontSize: 13, fontWeight: "600", flex: 1 },
-  chipArrow: { color: Z.gold, fontSize: 15, fontWeight: "800" },
-  tip: { fontSize: 11.5, color: Z.slate, marginTop: 16, fontStyle: "italic", textAlign: "center" },
+    feed: { flex: 1, backgroundColor: c.paper },
+    welcome: { paddingVertical: 8 },
+    wBadge: { alignSelf: "flex-start", backgroundColor: c.isDark ? "rgba(201,168,76,0.14)" : "#fbf2d8", borderWidth: 1, borderColor: "rgba(201,168,76,0.4)", borderRadius: 100, paddingHorizontal: 11, paddingVertical: 5, marginBottom: 14 },
+    wBadgeT: { fontSize: 9.5, fontWeight: "800", letterSpacing: 1, color: c.goldDeep },
+    wTitle: { fontFamily: SERIF, fontSize: 22, color: c.ink, fontWeight: "700", lineHeight: 27 },
+    wSub: { fontSize: 13, color: c.slate, lineHeight: 20, marginTop: 9 },
+    chips: { marginTop: 18, gap: 9 },
+    chip: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 13, paddingHorizontal: 14, paddingVertical: 13, shadowColor: c.shadow, shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
+    chipT: { color: c.inkSoft, fontSize: 13, fontWeight: "600", flex: 1 },
+    chipArrow: { color: c.gold, fontSize: 15, fontWeight: "800" },
+    tip: { fontSize: 11.5, color: c.slate, marginTop: 16, fontStyle: "italic", textAlign: "center" },
 
-  typing: { flexDirection: "row", alignItems: "flex-end", gap: 7 },
-  botMark: { width: 24, height: 24, borderRadius: 8, backgroundColor: Z.goldLite, alignItems: "center", justifyContent: "center", marginBottom: 2 },
-  botMarkT: { color: "#16223a", fontSize: 12, fontWeight: "800" },
-  typingBubble: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#fff", borderWidth: 1, borderColor: Z.line, borderRadius: 16, borderBottomLeftRadius: 5, paddingHorizontal: 13, paddingVertical: 11 },
-  typingT: { color: Z.slate, fontSize: 12.5, fontStyle: "italic" },
+    typing: { flexDirection: "row", alignItems: "flex-end", gap: 7 },
+    botMark: { width: 24, height: 24, borderRadius: 8, backgroundColor: c.goldLite, alignItems: "center", justifyContent: "center", marginBottom: 2 },
+    botMarkT: { color: "#16223a", fontSize: 12, fontWeight: "800" },
+    typingBubble: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 16, borderBottomLeftRadius: 5, paddingHorizontal: 13, paddingVertical: 11 },
+    typingT: { color: c.slate, fontSize: 12.5, fontStyle: "italic" },
 
-  inbar: { flexDirection: "row", alignItems: "flex-end", gap: 9, paddingHorizontal: 12, paddingTop: 10, paddingBottom: Platform.OS === "ios" ? 26 : 12, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: Z.line },
-  input: { flex: 1, maxHeight: 110, backgroundColor: Z.paper, borderWidth: 1, borderColor: Z.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: Platform.OS === "ios" ? 12 : 9, color: Z.ink, fontSize: 14 },
-  send: { width: 42, height: 42, borderRadius: 12, backgroundColor: Z.gold, alignItems: "center", justifyContent: "center", shadowColor: Z.goldDeep, shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
-  sendT: { color: "#16223a", fontWeight: "800", fontSize: 19 },
-});
+    inbar: { flexDirection: "row", alignItems: "flex-end", gap: 9, paddingHorizontal: 12, paddingTop: 10, paddingBottom: Platform.OS === "ios" ? 26 : 12, backgroundColor: c.card, borderTopWidth: 1, borderTopColor: c.line },
+    input: { flex: 1, maxHeight: 110, backgroundColor: c.field, borderWidth: 1, borderColor: c.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: Platform.OS === "ios" ? 12 : 9, color: c.ink, fontSize: 14 },
+    send: { width: 42, height: 42, borderRadius: 12, backgroundColor: c.gold, alignItems: "center", justifyContent: "center", shadowColor: c.goldDeep, shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
+    sendT: { color: "#16223a", fontWeight: "800", fontSize: 19 },
+  });
+}

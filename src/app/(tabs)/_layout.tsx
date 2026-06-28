@@ -4,16 +4,17 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
 
 import { useAuth } from "@/lib/auth";
-import { Z } from "@/theme/zonal";
+import { useTheme } from "@/theme/theme";
 
 // Profile tab icon = the user's S3 photo when set, else the person icon.
 function ProfileTabIcon({ color, size, focused }: { color: ColorValue; size: number; focused: boolean }) {
   const { user } = useAuth();
+  const { c } = useTheme();
   if (user?.avatar_url) {
     return (
       <Image
         source={{ uri: user.avatar_url }}
-        style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 1.5, borderColor: focused ? Z.navy : Z.line }}
+        style={{ width: size, height: size, borderRadius: size / 2, borderWidth: 1.5, borderColor: focused ? c.gold : c.line }}
         contentFit="cover"
       />
     );
@@ -22,14 +23,15 @@ function ProfileTabIcon({ color, size, focused }: { color: ColorValue; size: num
 }
 
 export default function TabsLayout() {
+  const { c } = useTheme();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarHideOnKeyboard: true,
-        tabBarActiveTintColor: Z.navy,
-        tabBarInactiveTintColor: Z.slate,
-        tabBarStyle: { backgroundColor: Z.white, borderTopColor: Z.line },
+        tabBarActiveTintColor: c.isDark ? c.goldLite : c.navy,
+        tabBarInactiveTintColor: c.slate,
+        tabBarStyle: { backgroundColor: c.card, borderTopColor: c.line },
         tabBarLabelStyle: { fontSize: 10.5, fontWeight: "700" },
       }}
     >

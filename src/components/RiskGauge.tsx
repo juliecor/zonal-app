@@ -1,12 +1,16 @@
+import { useMemo } from "react";
 import Svg, { Circle } from "react-native-svg";
 import { StyleSheet, Text, View } from "react-native";
 
-import { SERIF, Z } from "@/theme/zonal";
+import { useTheme, type Palette } from "@/theme/theme";
+import { SERIF } from "@/theme/zonal";
 
 /** Circular risk gauge — score out of `max`, arc coloured by severity. */
 export function RiskGauge({
   score, max = 3, color, size = 56,
 }: { score: number; max?: number; color: string; size?: number }) {
+  const { c } = useTheme();
+  const g = useMemo(() => makeStyles(c), [c]);
   const stroke = 6;
   const r = (size - stroke) / 2;
   const cx = size / 2;
@@ -18,7 +22,7 @@ export function RiskGauge({
   return (
     <View style={{ width: size, height: size }}>
       <Svg width={size} height={size}>
-        <Circle cx={cx} cy={cy} r={r} stroke="#eaeef4" strokeWidth={stroke} fill="none" />
+        <Circle cx={cx} cy={cy} r={r} stroke={c.line} strokeWidth={stroke} fill="none" />
         <Circle
           cx={cx} cy={cy} r={r} stroke={color} strokeWidth={stroke} fill="none"
           strokeLinecap="round" strokeDasharray={`${dash} ${circ}`}
@@ -33,8 +37,10 @@ export function RiskGauge({
   );
 }
 
-const g = StyleSheet.create({
-  center: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
-  num: { fontFamily: SERIF, fontSize: 16, color: Z.ink, lineHeight: 17 },
-  den: { fontSize: 7.5, color: Z.slate, fontWeight: "600", marginTop: 1 },
-});
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    center: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
+    num: { fontFamily: SERIF, fontSize: 16, color: c.ink, lineHeight: 17 },
+    den: { fontSize: 7.5, color: c.slate, fontWeight: "600", marginTop: 1 },
+  });
+}

@@ -3,12 +3,12 @@
 //          web → RN: postMessage {type:'ready'|'bounds'|'tap'|'pin', ...}
 // Each pin: {lat, lon, label, sel?, ...passthrough fields returned on click}.
 
-export function mapHtml(key: string): string {
+export function mapHtml(key: string, night = false): string {
   return `<!doctype html><html><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <style>
-  html,body,#map{height:100%;margin:0;padding:0;background:#e8edf0;font-family:-apple-system,system-ui,sans-serif}
+  html,body,#map{height:100%;margin:0;padding:0;background:${night ? "#0a1022" : "#e8edf0"};font-family:-apple-system,system-ui,sans-serif}
   .tag{position:absolute;transform:translate(-50%,-100%);background:#fff;border-radius:10px;padding:3px 8px;
     font-size:11px;font-weight:800;color:#16276a;box-shadow:0 6px 14px -6px rgba(12,20,48,.4);
     border:1px solid rgba(12,20,48,.08);white-space:nowrap;cursor:pointer}
@@ -20,10 +20,30 @@ export function mapHtml(key: string): string {
 </style></head><body><div id="map"></div>
 <script>
   var map, overlay, PINS=[], LAYERS={};
+  // Brand-navy "night" map style.
+  var NIGHT_STYLE=[
+    {elementType:"geometry",stylers:[{color:"#0f1830"}]},
+    {elementType:"labels.text.stroke",stylers:[{color:"#0a1022"}]},
+    {elementType:"labels.text.fill",stylers:[{color:"#8492b1"}]},
+    {featureType:"administrative",elementType:"geometry",stylers:[{color:"#2a3556"}]},
+    {featureType:"administrative.locality",elementType:"labels.text.fill",stylers:[{color:"#c5b074"}]},
+    {featureType:"poi",elementType:"labels.text.fill",stylers:[{color:"#7d89a8"}]},
+    {featureType:"poi.park",elementType:"geometry",stylers:[{color:"#13243a"}]},
+    {featureType:"road",elementType:"geometry",stylers:[{color:"#1c2746"}]},
+    {featureType:"road",elementType:"geometry.stroke",stylers:[{color:"#141d36"}]},
+    {featureType:"road",elementType:"labels.text.fill",stylers:[{color:"#9aa6c4"}]},
+    {featureType:"road.highway",elementType:"geometry",stylers:[{color:"#2b3a5e"}]},
+    {featureType:"road.highway",elementType:"labels.text.fill",stylers:[{color:"#d3b154"}]},
+    {featureType:"transit",elementType:"labels.text.fill",stylers:[{color:"#7d89a8"}]},
+    {featureType:"water",elementType:"geometry",stylers:[{color:"#070c1a"}]},
+    {featureType:"water",elementType:"labels.text.fill",stylers:[{color:"#3b4a6c"}]}
+  ];
+  var NIGHT=${night ? "true" : "false"};
   function post(o){ try{ if(window.ReactNativeWebView && typeof window.ReactNativeWebView.postMessage==='function') window.ReactNativeWebView.postMessage(JSON.stringify(o)); }catch(e){} }
   function initMap(){
     map=new google.maps.Map(document.getElementById('map'),{
-      center:{lat:10.3157,lng:123.8854}, zoom:16, disableDefaultUI:true, gestureHandling:'greedy', clickableIcons:true
+      center:{lat:10.3157,lng:123.8854}, zoom:16, disableDefaultUI:true, gestureHandling:'greedy', clickableIcons:true,
+      styles: NIGHT ? NIGHT_STYLE : []
     });
     overlay=new google.maps.OverlayView();
     overlay.onAdd=function(){ this.layer=document.createElement('div'); this.layer.style.position='absolute'; this.layer.style.top='0'; this.layer.style.left='0';
@@ -55,6 +75,7 @@ export function mapHtml(key: string): string {
     setPins:function(arr){ PINS=Array.isArray(arr)?arr:[]; render(); },
     center:function(lat,lon,zoom){ if(!map) return; map.panTo({lat:lat,lng:lon}); if(zoom) map.setZoom(zoom); },
     setType:function(t){ if(map) map.setMapTypeId(t); },
+    setNight:function(on){ NIGHT=!!on; if(map){ map.setOptions({styles: on ? NIGHT_STYLE : []}); } document.body.style.background = on ? '#0a1022' : '#e8edf0'; },
     setLayer:function(name,on){
       if(!map) return;
       var TILE={flood:'flood-tile',landslide:'landslide-tile',stormsurge:'stormsurge-tile'};

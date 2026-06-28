@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -15,9 +15,12 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
 import { nearestValue, resolveDomain, scanArea, type ZPoint } from "@/lib/api";
 import { buildLandUse, GROUP_LABEL, landUseFromClasses, type Group, type LandUse } from "@/lib/landuse";
-import { titleCase, Z } from "@/theme/zonal";
+import { titleCase } from "@/theme/zonal";
+import { useTheme, type Palette } from "@/theme/theme";
 
 export default function PropertyScreen() {
+  const { c, isDark } = useTheme();
+  const s = useMemo(() => makeStyles(c), [c]);
   const params = useLocalSearchParams<{ lat?: string; lon?: string; name?: string }>();
   const lat = Number(params.lat);
   const lon = Number(params.lon);
@@ -97,17 +100,17 @@ export default function PropertyScreen() {
 
   return (
     <View style={s.root}>
-      <StatusBar style="dark" />
-      <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.paper }}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <SafeAreaView edges={["top"]} style={{ backgroundColor: c.paper }}>
         <AppBar title={name} subtitle={info?.addr || "Establishment"} right={
-          <Pressable onPress={openReport} hitSlop={8} style={s.shareBtn}><Ionicons name="document-text-outline" size={18} color={Z.navy} /></Pressable>
+          <Pressable onPress={openReport} hitSlop={8} style={s.shareBtn}><Ionicons name="document-text-outline" size={18} color={isDark ? c.goldLite : c.navy} /></Pressable>
         } />
       </SafeAreaView>
 
       {loading ? (
-        <View style={s.center}><ActivityIndicator color={Z.gold} /><Text style={s.dim}>Reading the land…</Text></View>
+        <View style={s.center}><ActivityIndicator color={c.gold} /><Text style={s.dim}>Reading the land…</Text></View>
       ) : shownValue == null ? (
-        <View style={s.center}><Ionicons name="map-outline" size={28} color={Z.slate} /><Text style={s.dim}>No zonal data found for this exact spot.</Text></View>
+        <View style={s.center}><Ionicons name="map-outline" size={28} color={c.slate} /><Text style={s.dim}>No zonal data found for this exact spot.</Text></View>
       ) : (
         <ScrollView style={s.body} contentContainerStyle={{ padding: 14, paddingBottom: 40 }}>
           <ValueCard value={shownValue} appliesTo={appliesTo} />
@@ -120,13 +123,13 @@ export default function PropertyScreen() {
             {haz ? (
               <HazardPanel profile={haz} />
             ) : (
-              <View style={s.hazLoad}><ActivityIndicator color={Z.gold} size="small" /><Text style={s.dim}>Checking 6 geohazards…</Text></View>
+              <View style={s.hazLoad}><ActivityIndicator color={c.gold} size="small" /><Text style={s.dim}>Checking 6 geohazards…</Text></View>
             )}
           </View>
 
           {/* PRIMARY deliverable — a branded, downloadable property report */}
           <Pressable onPress={openReport} style={s.report}>
-            <View style={s.reportIc}><Ionicons name="document-text" size={20} color={Z.navy} /></View>
+            <View style={s.reportIc}><Ionicons name="document-text" size={20} color={c.navy} /></View>
             <View style={{ flex: 1 }}>
               <Text style={s.reportT}>View Property Report</Text>
               <Text style={s.reportSub}>Branded PDF · preview, download & share</Text>
@@ -170,19 +173,21 @@ export default function PropertyScreen() {
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Z.paper },
-  shareBtn: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "#eef1fa" },
-  body: { flex: 1, backgroundColor: Z.paper },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 30 },
-  dim: { color: Z.slate, fontSize: 12.5, textAlign: "center" },
-  hazLoad: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line, borderRadius: 16, padding: 16 },
-  report: { marginTop: 16, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: Z.gold, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16, shadowColor: Z.goldDeep, shadowOpacity: 0.45, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 7 },
-  reportIc: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.6)" },
-  reportT: { color: "#16223a", fontSize: 15.5, fontWeight: "800" },
-  reportSub: { color: "#3a3520", fontSize: 11, fontWeight: "600", marginTop: 2 },
-  ai: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: Z.navy, borderRadius: 13, paddingVertical: 13 },
-  aiSpark: { color: Z.goldLite, fontSize: 14 },
-  aiT: { color: "#fff", fontSize: 13, fontWeight: "700" },
-  note: { marginTop: 18, fontSize: 10, color: Z.slate, lineHeight: 15, textAlign: "center" },
-});
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.paper },
+    shareBtn: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: c.chip },
+    body: { flex: 1, backgroundColor: c.paper },
+    center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 30 },
+    dim: { color: c.slate, fontSize: 12.5, textAlign: "center" },
+    hazLoad: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 16, padding: 16 },
+    report: { marginTop: 16, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.gold, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16, shadowColor: c.goldDeep, shadowOpacity: 0.45, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 7 },
+    reportIc: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.6)" },
+    reportT: { color: "#16223a", fontSize: 15.5, fontWeight: "800" },
+    reportSub: { color: "#3a3520", fontSize: 11, fontWeight: "600", marginTop: 2 },
+    ai: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.navy, borderRadius: 13, paddingVertical: 13 },
+    aiSpark: { color: c.goldLite, fontSize: 14 },
+    aiT: { color: "#fff", fontSize: 13, fontWeight: "700" },
+    note: { marginTop: 18, fontSize: 10, color: c.slate, lineHeight: 15, textAlign: "center" },
+  });
+}

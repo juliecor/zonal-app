@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from "react-native";
@@ -15,10 +15,13 @@ import {
   getBarangays, getCities, getClassifications, getProvinces, getZonalValues,
   PROVINCES, type ZonalRecord,
 } from "@/lib/api";
-import { titleCase, Z } from "@/theme/zonal";
+import { useTheme, type Palette } from "@/theme/theme";
+import { titleCase } from "@/theme/zonal";
 
 export default function ZonalsScreen() {
   const { token } = useAuth();
+  const { c } = useTheme();
+  const s = useMemo(() => makeStyles(c), [c]);
 
   const [provinces, setProvinces] = useState<string[]>(PROVINCES);
   const [provModal, setProvModal] = useState(false);
@@ -96,7 +99,7 @@ export default function ZonalsScreen() {
   return (
     <View style={s.root}>
       <StatusBar style="light" />
-      <SafeAreaView edges={["top"]} style={{ backgroundColor: Z.navy }}>
+      <SafeAreaView edges={["top"]} style={{ backgroundColor: c.header }}>
         <View style={s.header}>
           <Logo size={40} />
           <View>
@@ -133,25 +136,25 @@ export default function ZonalsScreen() {
         {/* keyword search */}
         {!!city && (
           <View style={s.searchWrap}>
-            <Ionicons name="search" size={15} color={Z.slate} />
+            <Ionicons name="search" size={15} color={c.slate} />
             <TextInput
-              value={q} onChangeText={setQ} placeholder="Filter by street / subdivision…" placeholderTextColor={Z.slate}
+              value={q} onChangeText={setQ} placeholder="Filter by street / subdivision…" placeholderTextColor={c.slate}
               style={s.search} returnKeyType="search" onSubmitEditing={() => search({ nextPage: 1 })} autoCorrect={false}
             />
-            {q.length > 0 && <Pressable onPress={() => { setQ(""); search({ nextPage: 1 }); }} hitSlop={8}><Ionicons name="close-circle" size={16} color={Z.slate} /></Pressable>}
+            {q.length > 0 && <Pressable onPress={() => { setQ(""); search({ nextPage: 1 }); }} hitSlop={8}><Ionicons name="close-circle" size={16} color={c.slate} /></Pressable>}
           </View>
         )}
 
         {/* results */}
         <View style={s.results}>
           {!city ? (
-            <View style={s.center}><Ionicons name="business-outline" size={28} color={Z.slate} /><Text style={s.dim}>Pick a province and city to see its zonal values.</Text></View>
+            <View style={s.center}><Ionicons name="business-outline" size={28} color={c.slate} /><Text style={s.dim}>Pick a province and city to see its zonal values.</Text></View>
           ) : loading ? (
-            <View style={s.center}><ActivityIndicator color={Z.gold} /><Text style={s.dim}>Loading {titleCase(city)}…</Text></View>
+            <View style={s.center}><ActivityIndicator color={c.gold} /><Text style={s.dim}>Loading {titleCase(city)}…</Text></View>
           ) : err === "OUT_OF_CREDITS" ? (
-            <View style={s.center}><Ionicons name="server-outline" size={26} color={Z.slate} /><Text style={s.dim}>You're out of search credits. Request more from your account or ask an admin.</Text></View>
+            <View style={s.center}><Ionicons name="server-outline" size={26} color={c.slate} /><Text style={s.dim}>You're out of search credits. Request more from your account or ask an admin.</Text></View>
           ) : err === "UNAUTHORIZED" ? (
-            <View style={s.center}><Ionicons name="lock-closed-outline" size={26} color={Z.slate} /><Text style={s.dim}>Please sign in again to search records.</Text></View>
+            <View style={s.center}><Ionicons name="lock-closed-outline" size={26} color={c.slate} /><Text style={s.dim}>Please sign in again to search records.</Text></View>
           ) : err ? (
             <View style={s.center}><Text style={s.dim}>{err}</Text></View>
           ) : records.length === 0 ? (
@@ -172,7 +175,7 @@ export default function ZonalsScreen() {
               </View>
               {page < lastPage && (
                 <Pressable onPress={() => search({ nextPage: page + 1 })} style={s.more} disabled={loadingMore}>
-                  {loadingMore ? <ActivityIndicator color={Z.navy} /> : <Text style={s.moreT}>Load more ({total - records.length} left)</Text>}
+                  {loadingMore ? <ActivityIndicator color={c.navy} /> : <Text style={s.moreT}>Load more ({total - records.length} left)</Text>}
                 </Pressable>
               )}
             </>
@@ -188,51 +191,55 @@ export default function ZonalsScreen() {
 }
 
 function Selector({ label, value, placeholder, onPress, disabled }: { label: string; value: string | null; placeholder: string; onPress: () => void; disabled?: boolean }) {
+  const { c } = useTheme();
+  const s = useMemo(() => makeStyles(c), [c]);
   return (
     <Pressable onPress={disabled ? undefined : onPress} style={[s.sel, disabled && { opacity: 0.5 }]}>
       <Text style={s.selLbl}>{label}</Text>
       <View style={s.selRow}>
         <Text style={[s.selVal, !value && s.selPlaceholder]} numberOfLines={1}>{value || placeholder}</Text>
-        <Ionicons name="chevron-down" size={16} color={Z.slate} />
+        <Ionicons name="chevron-down" size={16} color={c.slate} />
       </View>
     </Pressable>
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: Z.paper },
-  header: { flexDirection: "row", alignItems: "center", gap: 11, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 16 },
-  logo: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: Z.goldLite },
-  logoT: { color: "#16223a", fontWeight: "800", fontSize: 19 },
-  brand: { color: Z.white, fontSize: 19, fontWeight: "800", letterSpacing: -0.3 },
-  brandSub: { color: "#9fb0d8", fontSize: 11, marginTop: 2, fontWeight: "600" },
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.paper },
+    header: { flexDirection: "row", alignItems: "center", gap: 11, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 16 },
+    logo: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: c.goldLite },
+    logoT: { color: "#16223a", fontWeight: "800", fontSize: 19 },
+    brand: { color: "#fff", fontSize: 19, fontWeight: "800", letterSpacing: -0.3 },
+    brandSub: { color: "#9fb0d8", fontSize: 11, marginTop: 2, fontWeight: "600" },
 
-  body: { flex: 1 },
-  chipsRow: { paddingHorizontal: 14, paddingVertical: 14, gap: 8 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 100, backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line },
-  chipOn: { backgroundColor: Z.navy, borderColor: Z.navy },
-  chipT: { fontSize: 13, fontWeight: "700", color: Z.slate },
-  chipTOn: { color: Z.white },
+    body: { flex: 1 },
+    chipsRow: { paddingHorizontal: 14, paddingVertical: 14, gap: 8 },
+    chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 100, backgroundColor: c.card, borderWidth: 1, borderColor: c.line },
+    chipOn: { backgroundColor: c.navy, borderColor: c.navy },
+    chipT: { fontSize: 13, fontWeight: "700", color: c.slate },
+    chipTOn: { color: "#fff" },
 
-  selectors: { flexDirection: "row", gap: 10, paddingHorizontal: 16 },
-  sel: { flex: 1, backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line, borderRadius: 13, paddingHorizontal: 13, paddingVertical: 10 },
-  selLbl: { fontSize: 9, fontWeight: "800", letterSpacing: 0.8, color: Z.slate, textTransform: "uppercase" },
-  selRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6, marginTop: 4 },
-  selVal: { flex: 1, fontSize: 14, fontWeight: "600", color: Z.ink },
-  selPlaceholder: { color: Z.slate, fontWeight: "500" },
+    selectors: { flexDirection: "row", gap: 10, paddingHorizontal: 16 },
+    sel: { flex: 1, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 13, paddingHorizontal: 13, paddingVertical: 10 },
+    selLbl: { fontSize: 9, fontWeight: "800", letterSpacing: 0.8, color: c.slate, textTransform: "uppercase" },
+    selRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6, marginTop: 4 },
+    selVal: { flex: 1, fontSize: 14, fontWeight: "600", color: c.ink },
+    selPlaceholder: { color: c.slate, fontWeight: "500" },
 
-  clsRow: { paddingHorizontal: 16, paddingTop: 12, gap: 7 },
-  clsChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line },
-  clsOn: { backgroundColor: "#fbf2d8", borderColor: Z.gold },
-  clsT: { fontSize: 12, fontWeight: "700", color: Z.slate },
-  clsTOn: { color: Z.navy },
+    clsRow: { paddingHorizontal: 16, paddingTop: 12, gap: 7 },
+    clsChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, backgroundColor: c.card, borderWidth: 1, borderColor: c.line },
+    clsOn: { backgroundColor: c.isDark ? "rgba(201,168,76,0.14)" : "#fbf2d8", borderColor: c.gold },
+    clsT: { fontSize: 12, fontWeight: "700", color: c.slate },
+    clsTOn: { color: c.isDark ? c.goldLite : c.navy },
 
-  searchWrap: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line, borderRadius: 13, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 13, paddingVertical: 11 },
-  search: { flex: 1, fontSize: 13.5, color: Z.ink, padding: 0 },
+    searchWrap: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 13, marginHorizontal: 16, marginTop: 12, paddingHorizontal: 13, paddingVertical: 11 },
+    search: { flex: 1, fontSize: 13.5, color: c.ink, padding: 0 },
 
-  results: { paddingHorizontal: 16, paddingTop: 16 },
-  center: { alignItems: "center", justifyContent: "center", gap: 11, paddingVertical: 44, paddingHorizontal: 24 },
-  dim: { color: Z.slate, fontSize: 13, textAlign: "center", lineHeight: 19 },
-  more: { marginTop: 14, alignItems: "center", justifyContent: "center", backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line, borderRadius: 12, paddingVertical: 13 },
-  moreT: { color: Z.navy, fontWeight: "700", fontSize: 13 },
-});
+    results: { paddingHorizontal: 16, paddingTop: 16 },
+    center: { alignItems: "center", justifyContent: "center", gap: 11, paddingVertical: 44, paddingHorizontal: 24 },
+    dim: { color: c.slate, fontSize: 13, textAlign: "center", lineHeight: 19 },
+    more: { marginTop: 14, alignItems: "center", justifyContent: "center", backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 12, paddingVertical: 13 },
+    moreT: { color: c.isDark ? c.goldLite : c.navy, fontWeight: "700", fontSize: 13 },
+  });
+}

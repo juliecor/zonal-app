@@ -6,13 +6,16 @@ import {
   computeCosts, estimatedValue, realPropertyTax,
   TRANSFER_RATE_CITY, TRANSFER_RATE_PROVINCE,
 } from "@/lib/phComputations";
-import { peso, SERIF, Z } from "@/theme/zonal";
+import { peso, SERIF } from "@/theme/zonal";
+import { useTheme, type Palette } from "@/theme/theme";
 
 const DOWN = [10, 20, 30];
 const TERMS = [10, 15, 20];
 
 /** Interactive Philippine cost & tax breakdown for a lot at a given zonal value. */
 export function CostsCard({ valuePerSqm, code }: { valuePerSqm: number; code?: string | null }) {
+  const { c: theme } = useTheme();
+  const s = useMemo(() => makeStyles(theme), [theme]);
   const [areaStr, setAreaStr] = useState("250");
   const [downPct, setDownPct] = useState(20);
   const [rateStr, setRateStr] = useState("6.5");
@@ -37,7 +40,7 @@ export function CostsCard({ valuePerSqm, code }: { valuePerSqm: number; code?: s
   return (
     <View style={s.card}>
       <View style={s.head}>
-        <View style={s.headIc}><Ionicons name="calculator-outline" size={16} color={Z.navy} /></View>
+        <View style={s.headIc}><Ionicons name="calculator-outline" size={16} color={theme.isDark ? theme.goldLite : theme.navy} /></View>
         <Text style={s.title}>Costs &amp; Taxes</Text>
         <View style={s.estTag}><Text style={s.estTagT}>ESTIMATE</Text></View>
       </View>
@@ -125,6 +128,8 @@ export function CostsCard({ valuePerSqm, code }: { valuePerSqm: number; code?: s
 }
 
 function Row({ label, sub, value, strong }: { label: string; sub?: string; value: string; strong?: boolean }) {
+  const { c } = useTheme();
+  const s = useMemo(() => makeStyles(c), [c]);
   return (
     <View style={[s.row, strong && s.rowStrong]}>
       <View style={{ flex: 1 }}>
@@ -136,58 +141,60 @@ function Row({ label, sub, value, strong }: { label: string; sub?: string; value
   );
 }
 
-const s = StyleSheet.create({
-  card: { backgroundColor: Z.white, borderWidth: 1, borderColor: Z.line, borderRadius: 16, padding: 16 },
-  head: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 14 },
-  headIc: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: "#eef1fa" },
-  title: { flex: 1, fontFamily: SERIF, fontSize: 16, fontWeight: "600", color: Z.ink },
-  estTag: { backgroundColor: "#fbf2d8", borderRadius: 100, paddingHorizontal: 8, paddingVertical: 3 },
-  estTagT: { fontSize: 8.5, fontWeight: "800", letterSpacing: 1, color: Z.goldDeep },
+function makeStyles(c: Palette) {
+  return StyleSheet.create({
+    card: { backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 16, padding: 16 },
+    head: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 14 },
+    headIc: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: c.chip },
+    title: { flex: 1, fontFamily: SERIF, fontSize: 16, fontWeight: "600", color: c.ink },
+    estTag: { backgroundColor: c.isDark ? "rgba(201,168,76,0.14)" : "#fbf2d8", borderRadius: 100, paddingHorizontal: 8, paddingVertical: 3 },
+    estTagT: { fontSize: 8.5, fontWeight: "800", letterSpacing: 1, color: c.goldDeep },
 
-  valRow: { flexDirection: "row", gap: 12, backgroundColor: "#fffdf7", borderWidth: 1, borderColor: "#ece3cf", borderRadius: 12, padding: 12 },
-  areaWrap: { flex: 1, justifyContent: "center" },
-  areaLbl: { fontSize: 9, fontWeight: "800", letterSpacing: 0.8, color: Z.slate },
-  areaInputRow: { flexDirection: "row", alignItems: "flex-end", gap: 5, marginTop: 4 },
-  areaInput: { fontFamily: SERIF, fontSize: 24, fontWeight: "700", color: Z.ink, padding: 0, minWidth: 64, borderBottomWidth: 1.5, borderBottomColor: Z.gold },
-  areaUnit: { fontSize: 12, color: Z.slate, fontWeight: "600", marginBottom: 4 },
-  estWrap: { alignItems: "flex-end", justifyContent: "center" },
-  estLbl: { fontSize: 9, fontWeight: "800", letterSpacing: 0.8, color: Z.goldDeep },
-  estVal: { fontFamily: SERIF, fontSize: 20, fontWeight: "700", color: Z.navy, marginTop: 3 },
-  estSub: { fontSize: 10.5, color: Z.slate, marginTop: 2 },
+    valRow: { flexDirection: "row", gap: 12, backgroundColor: c.cardAlt, borderWidth: 1, borderColor: c.isDark ? c.line : "#ece3cf", borderRadius: 12, padding: 12 },
+    areaWrap: { flex: 1, justifyContent: "center" },
+    areaLbl: { fontSize: 9, fontWeight: "800", letterSpacing: 0.8, color: c.slate },
+    areaInputRow: { flexDirection: "row", alignItems: "flex-end", gap: 5, marginTop: 4 },
+    areaInput: { fontFamily: SERIF, fontSize: 24, fontWeight: "700", color: c.ink, padding: 0, minWidth: 64, borderBottomWidth: 1.5, borderBottomColor: c.gold },
+    areaUnit: { fontSize: 12, color: c.slate, fontWeight: "600", marginBottom: 4 },
+    estWrap: { alignItems: "flex-end", justifyContent: "center" },
+    estLbl: { fontSize: 9, fontWeight: "800", letterSpacing: 0.8, color: c.goldDeep },
+    estVal: { fontFamily: SERIF, fontSize: 20, fontWeight: "700", color: c.isDark ? c.goldLite : c.navy, marginTop: 3 },
+    estSub: { fontSize: 10.5, color: c.slate, marginTop: 2 },
 
-  secHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 16, marginBottom: 4 },
-  secT: { fontSize: 9.5, fontWeight: "800", letterSpacing: 1, color: Z.slate },
-  toggle: { flexDirection: "row", backgroundColor: "#eef1fa", borderRadius: 8, padding: 2, gap: 2 },
-  tgBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  tgOn: { backgroundColor: Z.navy },
-  tgT: { fontSize: 10, fontWeight: "700", color: Z.slate },
-  tgTOn: { color: "#fff" },
+    secHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 16, marginBottom: 4 },
+    secT: { fontSize: 9.5, fontWeight: "800", letterSpacing: 1, color: c.slate },
+    toggle: { flexDirection: "row", backgroundColor: c.chip, borderRadius: 8, padding: 2, gap: 2 },
+    tgBtn: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+    tgOn: { backgroundColor: c.navy },
+    tgT: { fontSize: 10, fontWeight: "700", color: c.slate },
+    tgTOn: { color: "#fff" },
 
-  row: { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: "#f1ece0" },
-  rowStrong: { borderBottomWidth: 0, borderTopWidth: 2, borderTopColor: Z.navy, marginTop: 2, paddingTop: 10 },
-  rowL: { fontSize: 13, color: Z.inkSoft, fontWeight: "600" },
-  rowLStrong: { fontWeight: "800", color: Z.navy },
-  rowSub: { fontSize: 9.5, color: Z.slate, marginTop: 1, fontWeight: "600", letterSpacing: 0.3, textTransform: "uppercase" },
-  rowV: { fontSize: 13.5, fontWeight: "800", color: Z.ink },
-  rowVStrong: { fontSize: 15, color: Z.navy },
-  splitRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 6 },
-  splitT: { fontSize: 10.5, color: Z.slate, fontWeight: "600" },
+    row: { flexDirection: "row", alignItems: "center", paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: c.line },
+    rowStrong: { borderBottomWidth: 0, borderTopWidth: 2, borderTopColor: c.navy, marginTop: 2, paddingTop: 10 },
+    rowL: { fontSize: 13, color: c.inkSoft, fontWeight: "600" },
+    rowLStrong: { fontWeight: "800", color: c.isDark ? c.goldLite : c.navy },
+    rowSub: { fontSize: 9.5, color: c.slate, marginTop: 1, fontWeight: "600", letterSpacing: 0.3, textTransform: "uppercase" },
+    rowV: { fontSize: 13.5, fontWeight: "800", color: c.ink },
+    rowVStrong: { fontSize: 15, color: c.isDark ? c.goldLite : c.navy },
+    splitRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 6 },
+    splitT: { fontSize: 10.5, color: c.slate, fontWeight: "600" },
 
-  chipRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 9 },
-  chipLbl: { fontSize: 11, color: Z.slate, fontWeight: "700", width: 38 },
-  chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9, borderWidth: 1, borderColor: Z.line, backgroundColor: "#fff" },
-  chipOn: { backgroundColor: Z.navy, borderColor: Z.navy },
-  chipT: { fontSize: 12.5, fontWeight: "700", color: Z.inkSoft },
-  chipTOn: { color: "#fff" },
-  rateWrap: { flexDirection: "row", alignItems: "center", gap: 4, marginLeft: "auto", borderWidth: 1, borderColor: Z.line, borderRadius: 9, paddingHorizontal: 10, paddingVertical: 5 },
-  rateInput: { fontSize: 13, fontWeight: "700", color: Z.ink, padding: 0, minWidth: 30, textAlign: "right" },
-  rateUnit: { fontSize: 10.5, color: Z.slate, fontWeight: "600" },
+    chipRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 9 },
+    chipLbl: { fontSize: 11, color: c.slate, fontWeight: "700", width: 38 },
+    chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 9, borderWidth: 1, borderColor: c.line, backgroundColor: c.card },
+    chipOn: { backgroundColor: c.navy, borderColor: c.navy },
+    chipT: { fontSize: 12.5, fontWeight: "700", color: c.inkSoft },
+    chipTOn: { color: "#fff" },
+    rateWrap: { flexDirection: "row", alignItems: "center", gap: 4, marginLeft: "auto", borderWidth: 1, borderColor: c.line, borderRadius: 9, paddingHorizontal: 10, paddingVertical: 5 },
+    rateInput: { fontSize: 13, fontWeight: "700", color: c.ink, padding: 0, minWidth: 30, textAlign: "right" },
+    rateUnit: { fontSize: 10.5, color: c.slate, fontWeight: "600" },
 
-  monthly: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: Z.navy, borderRadius: 12, padding: 14, marginTop: 12 },
-  monthlyLbl: { fontSize: 9, fontWeight: "800", letterSpacing: 1, color: Z.goldLite },
-  monthlySub: { fontSize: 10.5, color: "#c8d3f0", marginTop: 3 },
-  monthlyVal: { fontFamily: SERIF, fontSize: 22, fontWeight: "700", color: "#fff" },
-  monthlyPer: { fontSize: 12, fontWeight: "600", color: "#c8d3f0" },
+    monthly: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: c.navy, borderRadius: 12, padding: 14, marginTop: 12 },
+    monthlyLbl: { fontSize: 9, fontWeight: "800", letterSpacing: 1, color: c.goldLite },
+    monthlySub: { fontSize: 10.5, color: "#c8d3f0", marginTop: 3 },
+    monthlyVal: { fontFamily: SERIF, fontSize: 22, fontWeight: "700", color: "#fff" },
+    monthlyPer: { fontSize: 12, fontWeight: "600", color: "#c8d3f0" },
 
-  note: { fontSize: 10, color: Z.slate, lineHeight: 15, marginTop: 14 },
-});
+    note: { fontSize: 10, color: c.slate, lineHeight: 15, marginTop: 14 },
+  });
+}
