@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
-  ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView,
+  ActivityIndicator, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from "react-native";
 import Svg, { Defs, Line, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -52,18 +53,23 @@ function Backdrop() {
   );
 }
 
-function Field(props: React.ComponentProps<typeof TextInput> & { icon: keyof typeof Ionicons.glyphMap }) {
-  const { icon, ...rest } = props;
+function Field(props: React.ComponentProps<typeof TextInput> & {
+  icon: keyof typeof Ionicons.glyphMap;
+  onFocusScroll?: (ref: React.RefObject<TextInput | null>) => void;
+}) {
+  const { icon, onFocusScroll, ...rest } = props;
+  const ref = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
   return (
     <View style={[st.field, focused && st.fieldFocus]}>
       <Ionicons name={icon} size={18} color={focused ? Z.goldLite : "rgba(255,255,255,0.4)"} />
       <TextInput
+        ref={ref}
         placeholderTextColor="rgba(255,255,255,0.38)"
         autoCorrect={false}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
         {...rest}
+        onFocus={(e) => { setFocused(true); rest.onFocus?.(e); onFocusScroll?.(ref); }}
+        onBlur={(e) => { setFocused(false); rest.onBlur?.(e); }}
         style={st.fieldInput}
       />
     </View>
@@ -72,6 +78,23 @@ function Field(props: React.ComponentProps<typeof TextInput> & { icon: keyof typ
 
 export function LoginScreen() {
   const { signIn, register, verifyOtp, requestLoginOtp, verifyLoginOtp } = useAuth();
+
+  // Android-safe keyboard handling: a keyboard-sized spacer gives scroll room, and we
+  // scroll the focused field into the upper third so the keyboard never covers it.
+  const { height: screenH } = useWindowDimensions();
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
+  const codeRef = useRef<TextInput>(null);
+  const keyboard = useAnimatedKeyboard();
+  const spacerStyle = useAnimatedStyle(() => ({ height: keyboard.height.value }));
+  const ensureVisible = (ref: React.RefObject<TextInput | null>) => {
+    setTimeout(() => {
+      ref.current?.measureInWindow((_x, y) => {
+        const target = screenH * 0.28;
+        if (y > target) scrollRef.current?.scrollTo({ y: scrollY.current + (y - target), animated: true });
+      });
+    }, 90);
+  };
 
   const [mode, setMode] = useState<Mode>("signin");
   const [busy, setBusy] = useState(false);
@@ -144,8 +167,15 @@ export function LoginScreen() {
       <StatusBar style="light" />
       <Backdrop />
       <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-          <ScrollView contentContainerStyle={st.scroll} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={st.scroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
+          showsVerticalScrollIndicator={false}
+          onScroll={(e) => { scrollY.current = e.nativeEvent.contentOffset.y; }}
+          scrollEventThrottle={16}
+        >
 
             {/* hero */}
             <View style={st.hero}>
@@ -174,18 +204,18 @@ export function LoginScreen() {
                 <View style={st.rowGap}>
                   <View style={{ flex: 1 }}>
                     <Text style={st.lbl}>First name</Text>
-                    <Field value={firstName} onChangeText={setFirstName} placeholder="Juan" icon="person-outline" />
+                    <Field value={firstName} onChangeText={setFirstName} placeholder="Juan" icon="person-outline" onFocusScroll={ensureVisible} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={st.lbl}>Last name</Text>
-                    <Field value={lastName} onChangeText={setLastName} placeholder="Dela Cruz" icon="person-outline" />
+                    <Field value={lastName} onChangeText={setLastName} placeholder="Dela Cruz" icon="person-outline" onFocusScroll={ensureVisible} />
                   </View>
                 </View>
               )}
               {mode === "register" && (
                 <>
                   <Text style={st.lbl}>Phone (optional)</Text>
-                  <Field value={phone} onChangeText={setPhone} placeholder="+63 9XX XXX XXXX" icon="call-outline" keyboardType="phone-pad" />
+                  <Field value={phone} onChangeText={setPhone} placeholder="+63 9XX XXX XXXX" icon="call-outline" keyboardType="phone-pad" onFocusScroll={ensureVisible} />
                 </>
               )}
 
@@ -193,25 +223,27 @@ export function LoginScreen() {
                 <>
                   <Text style={st.lbl}>6-digit code</Text>
                   <TextInput
+                    ref={codeRef}
                     value={code} onChangeText={(t) => setCode(t.replace(/\D/g, "").slice(0, 6))}
                     placeholder="••••••" placeholderTextColor="rgba(255,255,255,0.22)"
                     style={st.codeInput} keyboardType="number-pad" maxLength={6} autoFocus
+                    onFocus={() => ensureVisible(codeRef)}
                   />
                 </>
               ) : (
                 <>
                   <Text style={st.lbl}>Email address</Text>
-                  <Field value={email} onChangeText={setEmail} placeholder="you@email.com" icon="mail-outline" keyboardType="email-address" autoCapitalize="none" />
+                  <Field value={email} onChangeText={setEmail} placeholder="you@email.com" icon="mail-outline" keyboardType="email-address" autoCapitalize="none" onFocusScroll={ensureVisible} />
                   {mode !== "otpEmail" && (
                     <>
                       <Text style={st.lbl}>Password</Text>
-                      <Field value={password} onChangeText={setPassword} placeholder="Enter your password" icon="lock-closed-outline" secureTextEntry />
+                      <Field value={password} onChangeText={setPassword} placeholder="Enter your password" icon="lock-closed-outline" secureTextEntry onFocusScroll={ensureVisible} />
                     </>
                   )}
                   {mode === "register" && (
                     <>
                       <Text style={st.lbl}>Confirm password</Text>
-                      <Field value={confirm} onChangeText={setConfirm} placeholder="Re-enter password" icon="lock-closed-outline" secureTextEntry />
+                      <Field value={confirm} onChangeText={setConfirm} placeholder="Re-enter password" icon="lock-closed-outline" secureTextEntry onFocusScroll={ensureVisible} />
                     </>
                   )}
                 </>
@@ -252,8 +284,8 @@ export function LoginScreen() {
             </View>
 
             <Text style={st.legal}>Built by Filipino Homes · Leuterio Realty</Text>
+            <Animated.View style={spacerStyle} />
           </ScrollView>
-        </KeyboardAvoidingView>
       </SafeAreaView>
     </View>
   );
