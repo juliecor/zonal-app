@@ -16,16 +16,16 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 // i.e. BEFORE the <G scale(0.1)> — so it must be in potrace units, not viewBox px.
 const INK_LEN = 84000;
 
-// Value pins, placed as fractions of the map box (fx → right, fy → down).
+// Value pins, placed as fractions of the (now tight) map box (fx → right, fy → down).
 const PINS = [
-  { fx: 0.52, fy: 0.26, label: "₱72k" }, // Luzon / Metro Manila
-  { fx: 0.60, fy: 0.60, label: "₱47k" }, // Visayas / Cebu
-  { fx: 0.72, fy: 0.85, label: "₱20k" }, // Mindanao / Davao
+  { fx: 0.52, fy: 0.27, label: "₱72k" }, // Luzon / Metro Manila
+  { fx: 0.59, fy: 0.62, label: "₱47k" }, // Visayas / Cebu
+  { fx: 0.69, fy: 0.84, label: "₱20k" }, // Mindanao / Davao
 ];
 
 export function Intro({ onDone }: { onDone: () => void }) {
   const { width, height } = useWindowDimensions();
-  const mapW = Math.min(width * 0.9, 400);
+  const mapW = Math.min(width * 0.82, 360);
   const mapH = mapW * PH_RATIO;
 
   const mapOpacity = useSharedValue(0);
@@ -93,10 +93,10 @@ export function Intro({ onDone }: { onDone: () => void }) {
       <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
         <Defs>
           <LinearGradient id="introbg" x1="0" y1="0" x2="0.3" y2="1">
-            <Stop offset="0" stopColor="#101d3f" /><Stop offset="0.55" stopColor="#0b142b" /><Stop offset="1" stopColor="#070c1a" />
+            <Stop offset="0" stopColor="#1d3066" /><Stop offset="0.55" stopColor="#16264f" /><Stop offset="1" stopColor="#0f1c3c" />
           </LinearGradient>
-          <RadialGradient id="introglow" cx="50%" cy="46%" r="50%">
-            <Stop offset="0" stopColor="#c9a84c" stopOpacity="0.24" /><Stop offset="1" stopColor="#c9a84c" stopOpacity="0" />
+          <RadialGradient id="introglow" cx="50%" cy="45%" r="55%">
+            <Stop offset="0" stopColor="#d9b85a" stopOpacity="0.34" /><Stop offset="0.6" stopColor="#c9a84c" stopOpacity="0.1" /><Stop offset="1" stopColor="#c9a84c" stopOpacity="0" />
           </RadialGradient>
         </Defs>
         <Rect x="0" y="0" width={width} height={height} fill="url(#introbg)" />
@@ -135,8 +135,13 @@ export function Intro({ onDone }: { onDone: () => void }) {
           </Svg>
 
           {PINS.map((p, i) => (
-            <Animated.View key={i} style={[styles.pin, { left: p.fx * mapW - 24, top: p.fy * mapH - 16 }, pinStyles[i]]}>
-              <Text style={styles.pinT}>{p.label}</Text>
+            <Animated.View key={i} style={[styles.pinWrap, { left: p.fx * mapW - 42, top: p.fy * mapH - 44 }, pinStyles[i]]}>
+              <View style={styles.pinCard}>
+                <View style={styles.pinDot}><View style={styles.pinDotCore} /></View>
+                <Text style={styles.pinT}>{p.label}</Text>
+                <Text style={styles.pinSub}>/sqm</Text>
+              </View>
+              <View style={styles.pinTail} />
             </Animated.View>
           ))}
         </Animated.View>
@@ -154,13 +159,19 @@ export function Intro({ onDone }: { onDone: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  root: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#070c1a", alignItems: "center", justifyContent: "center" },
+  root: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#0f1c3c", alignItems: "center", justifyContent: "center" },
   center: { alignItems: "center", justifyContent: "center" },
-  pin: {
-    position: "absolute", backgroundColor: "#fff", borderRadius: 9, paddingHorizontal: 8, paddingVertical: 4,
-    shadowColor: "#0c1430", shadowOpacity: 0.4, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 6,
+  pinWrap: { position: "absolute", width: 84, alignItems: "center" },
+  pinCard: {
+    flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#fffdf7", borderRadius: 11,
+    borderWidth: 1, borderColor: "rgba(201,168,76,0.5)", paddingLeft: 8, paddingRight: 10, paddingVertical: 5,
+    shadowColor: "#0a1024", shadowOpacity: 0.45, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 9,
   },
-  pinT: { color: Z.navy, fontWeight: "800", fontSize: 12 },
+  pinDot: { width: 11, height: 11, borderRadius: 6, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(201,168,76,0.28)" },
+  pinDotCore: { width: 5, height: 5, borderRadius: 3, backgroundColor: Z.goldDeep },
+  pinT: { color: Z.navy, fontWeight: "800", fontSize: 13.5, fontFamily: SERIF },
+  pinSub: { color: Z.slate, fontWeight: "700", fontSize: 9, marginLeft: -2, marginTop: 3 },
+  pinTail: { width: 12, height: 12, marginTop: -7, backgroundColor: "#fffdf7", borderRightWidth: 1, borderBottomWidth: 1, borderColor: "rgba(201,168,76,0.5)", transform: [{ rotate: "45deg" }] },
   brand: { position: "absolute", left: 0, right: 0, bottom: 76, alignItems: "center" },
   word: { color: "#fff", fontSize: 23, fontWeight: "700", letterSpacing: -0.4, marginTop: 14, fontFamily: SERIF },
   by: { color: "#9fb0d8", fontFamily: SERIF, fontSize: 11, letterSpacing: 2, marginTop: 5 },

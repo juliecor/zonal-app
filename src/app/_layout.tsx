@@ -51,7 +51,7 @@ export default function RootLayout() {
 }
 
 const g = StyleSheet.create({
-  splash: { flex: 1, backgroundColor: Z.navyDeep, alignItems: "center", justifyContent: "center" },
+  splash: { flex: 1, backgroundColor: "#0f1c3c", alignItems: "center", justifyContent: "center" },
   logo: { width: 60, height: 60, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: Z.goldLite },
   logoT: { color: "#16223a", fontWeight: "800", fontSize: 30, fontFamily: SERIF },
   brand: { color: "#fff", fontSize: 17, fontWeight: "700", marginTop: 14, letterSpacing: -0.3 },

@@ -3,7 +3,7 @@ import {
   ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from "react-native";
-import Svg, { Defs, Line, LinearGradient, Path, Rect, Stop } from "react-native-svg";
+import Svg, { Defs, Line, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -31,12 +31,17 @@ function Backdrop() {
     <Svg width={w} height={h} style={StyleSheet.absoluteFill}>
       <Defs>
         <LinearGradient id="bg" x1="0" y1="0" x2="0.3" y2="1">
-          <Stop offset="0" stopColor="#101d3f" />
-          <Stop offset="0.55" stopColor="#0b142b" />
-          <Stop offset="1" stopColor="#070c1a" />
+          <Stop offset="0" stopColor="#1d3066" />
+          <Stop offset="0.55" stopColor="#16264f" />
+          <Stop offset="1" stopColor="#0f1c3c" />
         </LinearGradient>
+        <RadialGradient id="bgglow" cx="50%" cy="30%" r="60%">
+          <Stop offset="0" stopColor="#d9b85a" stopOpacity="0.16" />
+          <Stop offset="1" stopColor="#c9a84c" stopOpacity="0" />
+        </RadialGradient>
       </Defs>
       <Rect x={0} y={0} width={w} height={h} fill="url(#bg)" />
+      <Rect x={0} y={0} width={w} height={h} fill="url(#bgglow)" />
       {v.map((x) => <Line key={`v${x}`} x1={x} y1={0} x2={x} y2={h} stroke="rgba(255,255,255,0.028)" strokeWidth={1} />)}
       {hz.map((y) => <Line key={`h${y}`} x1={0} y1={y} x2={w} y2={y} stroke="rgba(255,255,255,0.028)" strokeWidth={1} />)}
       {/* faint gold contour sweeps (lines, not blobs) */}
@@ -255,7 +260,7 @@ export function LoginScreen() {
 }
 
 const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#070c1a" },
+  root: { flex: 1, backgroundColor: "#0f1c3c" },
   scroll: { flexGrow: 1, justifyContent: "center", padding: 22, paddingVertical: 34 },
 
   hero: { alignItems: "center", marginBottom: 22 },
