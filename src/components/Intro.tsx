@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import Svg, { Defs, G, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import Animated, {
@@ -16,12 +16,39 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 // i.e. BEFORE the <G scale(0.1)> — so it must be in potrace units, not viewBox px.
 const INK_LEN = 84000;
 
-// Value pins, placed as fractions of the (now tight) map box (fx → right, fy → down).
+// Value pins as fractions of the (tight) map box (fx → right, fy → down). Positions
+// were derived from the real geometry so each sits on land, spread across the country.
 const PINS = [
-  { fx: 0.52, fy: 0.27, label: "₱72k" }, // Luzon / Metro Manila
-  { fx: 0.59, fy: 0.62, label: "₱47k" }, // Visayas / Cebu
-  { fx: 0.69, fy: 0.84, label: "₱20k" }, // Mindanao / Davao
+  { fx: 0.45, fy: 0.15, label: "₱15k" }, // Northern Luzon
+  { fx: 0.52, fy: 0.28, label: "₱88k" }, // Metro Manila
+  { fx: 0.67, fy: 0.40, label: "₱11k" }, // Bicol
+  { fx: 0.28, fy: 0.54, label: "₱8k" },  // Palawan
+  { fx: 0.60, fy: 0.62, label: "₱47k" }, // Cebu / Visayas
+  { fx: 0.65, fy: 0.76, label: "₱14k" }, // Northern Mindanao
+  { fx: 0.78, fy: 0.86, label: "₱22k" }, // Davao
 ];
+
+// One value pin that floats up over the map, staggered by its index.
+function Pin({ label, left, top, delay }: { label: string; left: number; top: number; delay: number }) {
+  const v = useSharedValue(0);
+  useEffect(() => {
+    v.value = withDelay(delay, withTiming(1, { duration: 460, easing: Easing.out(Easing.back(1.7)) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const style = useAnimatedStyle(() => ({
+    opacity: v.value,
+    transform: [{ translateY: (1 - v.value) * 7 }, { scale: 0.55 + 0.45 * v.value }],
+  }));
+  return (
+    <Animated.View style={[styles.pinWrap, { left, top }, style]}>
+      <View style={styles.pinCard}>
+        <View style={styles.pinDot}><View style={styles.pinDotCore} /></View>
+        <Text style={styles.pinT}>{label}</Text>
+      </View>
+      <View style={styles.pinTail} />
+    </Animated.View>
+  );
+}
 
 export function Intro({ onDone }: { onDone: () => void }) {
   const { width, height } = useWindowDimensions();
@@ -33,9 +60,9 @@ export function Intro({ onDone }: { onDone: () => void }) {
   const mapTilt = useSharedValue(52);    // camera laid back, then levels
   const ink = useSharedValue(INK_LEN);   // strokeDashoffset → 0 draws the coastline
   const fill = useSharedValue(0);         // gold fill fades in behind the ink
-  const p0 = useSharedValue(0), p1 = useSharedValue(0), p2 = useSharedValue(0);
   const brandO = useSharedValue(0), brandY = useSharedValue(16);
   const root = useSharedValue(1);
+  const [k, setK] = useState<number | null>(null); // motion factor (reduce-motion → 0.5); gates the pins
 
   const finished = useRef(false);
   const finish = () => { if (!finished.current) { finished.current = true; onDone(); } };
@@ -43,28 +70,24 @@ export function Intro({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     let cancelled = false;
     const E = Easing.out(Easing.cubic);
-    const pinE = Easing.out(Easing.back(1.7));
-    const pinSV = [p0, p1, p2];
 
-    const run = (fast: boolean) => {
-      const k = fast ? 0.5 : 1; // reduce-motion → faster, but still plays
-      mapOpacity.value = withTiming(1, { duration: 260 * k });
+    const run = (kk: number) => {
+      mapOpacity.value = withTiming(1, { duration: 260 * kk });
       // the coastline inks itself in, north → south, island by island
-      ink.value = withDelay(160 * k, withTiming(0, { duration: 2300 * k, easing: Easing.inOut(Easing.quad) }));
+      ink.value = withDelay(160 * kk, withTiming(0, { duration: 2300 * kk, easing: Easing.inOut(Easing.quad) }));
       // gold fills in behind the advancing ink
-      fill.value = withDelay(820 * k, withTiming(1, { duration: 1700 * k, easing: Easing.out(Easing.quad) }));
+      fill.value = withDelay(820 * kk, withTiming(1, { duration: 1700 * kk, easing: Easing.out(Easing.quad) }));
       // camera lays back, then levels as the map draws
-      mapScale.value = withTiming(1, { duration: 3000 * k, easing: E });
-      mapTilt.value = withDelay(220 * k, withTiming(6, { duration: 2700 * k, easing: E }));
-      pinSV.forEach((sv, i) => { sv.value = withDelay((2350 + i * 360) * k, withTiming(1, { duration: 460, easing: pinE })); });
-      brandO.value = withDelay(2700 * k, withTiming(1, { duration: 650 }));
-      brandY.value = withDelay(2700 * k, withTiming(0, { duration: 650, easing: E }));
-      root.value = withDelay(4250 * k, withTiming(0, { duration: 520 }, (fin) => { if (fin) runOnJS(finish)(); }));
+      mapScale.value = withTiming(1, { duration: 3000 * kk, easing: E });
+      mapTilt.value = withDelay(220 * kk, withTiming(6, { duration: 2700 * kk, easing: E }));
+      brandO.value = withDelay(2800 * kk, withTiming(1, { duration: 650 }));
+      brandY.value = withDelay(2800 * kk, withTiming(0, { duration: 650, easing: E }));
+      root.value = withDelay(4650 * kk, withTiming(0, { duration: 520 }, (fin) => { if (fin) runOnJS(finish)(); }));
     };
 
     AccessibilityInfo.isReduceMotionEnabled()
-      .then((reduce) => { if (!cancelled) run(reduce); })
-      .catch(() => run(false));
+      .then((reduce) => { if (!cancelled) { const kk = reduce ? 0.5 : 1; setK(kk); run(kk); } })
+      .catch(() => { setK(1); run(1); });
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -78,10 +101,6 @@ export function Intro({ onDone }: { onDone: () => void }) {
   const inkProps = useAnimatedProps(() => ({ strokeDashoffset: ink.value }));
   const fillProps = useAnimatedProps(() => ({ fillOpacity: fill.value }));
   const brandStyle = useAnimatedStyle(() => ({ opacity: brandO.value, transform: [{ translateY: brandY.value }] }));
-  const pinStyle0 = useAnimatedStyle(() => ({ opacity: p0.value, transform: [{ scale: 0.5 + 0.5 * p0.value }] }));
-  const pinStyle1 = useAnimatedStyle(() => ({ opacity: p1.value, transform: [{ scale: 0.5 + 0.5 * p1.value }] }));
-  const pinStyle2 = useAnimatedStyle(() => ({ opacity: p2.value, transform: [{ scale: 0.5 + 0.5 * p2.value }] }));
-  const pinStyles = [pinStyle0, pinStyle1, pinStyle2];
 
   const step = 34;
   const vLines: number[] = []; const hLines: number[] = [];
@@ -134,15 +153,8 @@ export function Intro({ onDone }: { onDone: () => void }) {
             </G>
           </Svg>
 
-          {PINS.map((p, i) => (
-            <Animated.View key={i} style={[styles.pinWrap, { left: p.fx * mapW - 42, top: p.fy * mapH - 44 }, pinStyles[i]]}>
-              <View style={styles.pinCard}>
-                <View style={styles.pinDot}><View style={styles.pinDotCore} /></View>
-                <Text style={styles.pinT}>{p.label}</Text>
-                <Text style={styles.pinSub}>/sqm</Text>
-              </View>
-              <View style={styles.pinTail} />
-            </Animated.View>
+          {k != null && PINS.map((p, i) => (
+            <Pin key={i} label={p.label} left={p.fx * mapW - 42} top={p.fy * mapH - 44} delay={(2300 + i * 170) * k} />
           ))}
         </Animated.View>
       </View>
@@ -164,13 +176,12 @@ const styles = StyleSheet.create({
   pinWrap: { position: "absolute", width: 84, alignItems: "center" },
   pinCard: {
     flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#fffdf7", borderRadius: 11,
-    borderWidth: 1, borderColor: "rgba(201,168,76,0.5)", paddingLeft: 8, paddingRight: 10, paddingVertical: 5,
+    borderWidth: 1, borderColor: "rgba(201,168,76,0.5)", paddingLeft: 8, paddingRight: 11, paddingVertical: 5,
     shadowColor: "#0a1024", shadowOpacity: 0.45, shadowRadius: 12, shadowOffset: { width: 0, height: 7 }, elevation: 9,
   },
   pinDot: { width: 11, height: 11, borderRadius: 6, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(201,168,76,0.28)" },
   pinDotCore: { width: 5, height: 5, borderRadius: 3, backgroundColor: Z.goldDeep },
-  pinT: { color: Z.navy, fontWeight: "800", fontSize: 13.5, fontFamily: SERIF },
-  pinSub: { color: Z.slate, fontWeight: "700", fontSize: 9, marginLeft: -2, marginTop: 3 },
+  pinT: { color: Z.navy, fontWeight: "800", fontSize: 14, fontFamily: SERIF },
   pinTail: { width: 12, height: 12, marginTop: -7, backgroundColor: "#fffdf7", borderRightWidth: 1, borderBottomWidth: 1, borderColor: "rgba(201,168,76,0.5)", transform: [{ rotate: "45deg" }] },
   brand: { position: "absolute", left: 0, right: 0, bottom: 76, alignItems: "center" },
   word: { color: "#fff", fontSize: 23, fontWeight: "700", letterSpacing: -0.4, marginTop: 14, fontFamily: SERIF },
