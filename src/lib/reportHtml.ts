@@ -3,6 +3,7 @@
 // One HTML string used for BOTH the in-app WebView preview AND the expo-print PDF.
 
 import type { Hazard } from "@/lib/hazards";
+import { computeCosts } from "@/lib/phComputations";
 
 export interface ReportData {
   location: string;
@@ -81,6 +82,22 @@ export function buildReportHtml(d: ReportData): string {
   const mapBlock = d.mapDataUrl ? `
     <div class="mapwrap"><img src="${d.mapDataUrl}" alt="Location map"/></div>` : "";
 
+  const php = (n: number) => "₱" + grp(String(Math.round(n)));
+  const costs = d.value && d.value > 0 ? computeCosts({ price: d.value * sqm }) : null;
+  const costsBlock = costs ? `
+    <div class="section">
+      <div class="h2">Estimated Transaction Costs</div><div class="h2rule"></div>
+      <div class="costnote">Illustrative for a ${sqm} sqm lot at this zonal value (${php(costs.price)} base). Taxes are computed on the higher of the selling price or the BIR zonal value; transfer tax and fees vary by LGU.</div>
+      <table class="costs">
+        <tr><td>Capital Gains Tax <span>6% · seller</span></td><td>${php(costs.cgt)}</td></tr>
+        <tr><td>Documentary Stamp Tax <span>1.5% · buyer</span></td><td>${php(costs.dst)}</td></tr>
+        <tr><td>Transfer Tax <span>0.75% · buyer</span></td><td>${php(costs.transferTax)}</td></tr>
+        <tr><td>Registration Fee <span>~0.25% · buyer</span></td><td>${php(costs.registrationFee)}</td></tr>
+        <tr class="tot"><td>Total taxes &amp; fees</td><td>${php(costs.totalFees)}</td></tr>
+        <tr><td>Est. monthly amortization <span>80% loan · 6.5% · 20 yrs</span></td><td>${php(costs.monthlyAmortization)}<small>/mo</small></td></tr>
+      </table>
+    </div>` : "";
+
   return `<!DOCTYPE html><html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
@@ -117,6 +134,13 @@ export function buildReportHtml(d: ReportData): string {
   .hname { font-size:11px; font-weight:700; color:${INK}; }
   .htext { font-size:11px; font-weight:800; margin-top:1px; }
   .assess { font-size:12.5px; color:#33405e; line-height:1.62; margin-top:12px; }
+  .costnote { font-size:10.5px; color:#5b6577; margin-top:11px; line-height:1.5; }
+  .costs { width:100%; border-collapse:collapse; margin-top:12px; }
+  .costs td { padding:9px 2px; border-bottom:1px solid #efeadd; font-size:12.5px; color:${INK}; }
+  .costs td:last-child { text-align:right; font-weight:800; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .costs td span { display:block; font-size:9px; color:#8a93a6; font-weight:600; letter-spacing:0.4px; text-transform:uppercase; margin-top:2px; }
+  .costs td small { font-size:9px; color:#8a93a6; font-weight:600; }
+  .costs tr.tot td { border-top:2px solid ${NAVY}; border-bottom:none; color:${NAVY}; font-weight:800; }
   .sign { display:flex; justify-content:space-between; gap:30px; margin-top:38px; }
   .col { flex:1; }
   .col.r { text-align:right; }
@@ -164,6 +188,8 @@ export function buildReportHtml(d: ReportData): string {
         </div>
         <div class="hazgrid">${hazCells}</div>
       </div>
+
+      ${costsBlock}
 
       <div class="section">
         <div class="h2">Property Assessment</div><div class="h2rule"></div>

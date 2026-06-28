@@ -12,14 +12,39 @@ import { ChatBubble } from "@/components/ChatBubble";
 import { askAssistant, type ChatMsg } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { provinceToDomain } from "@/lib/landuse";
+import { computeCosts, estimatedValue } from "@/lib/phComputations";
 import { SERIF, Z } from "@/theme/zonal";
 
 const SUGGESTIONS = [
   "What's the commercial zonal value in Lahug, Cebu City?",
-  "Compare Mandaue City vs Cebu City for a commercial lot",
+  "Taxes & fees to transfer a ₱3,000,000 lot?",
+  "Monthly amortization on a ₱2.5M lot, 20% down, 20 years?",
   "Is Banilad, Cebu City flood-prone?",
-  "Cheapest residential area in Cebu City?",
 ];
+
+// Cost/tax/financing intent → attach app-computed reference figures to the question.
+const COST_INTENT = /\b(cost|costs|tax|taxes|cgt|capital\s*gains|dst|stamp|transfer|registration|amortizat|amortis|monthly|mortgage|loan|financ|down\s*payment|amilyar|rpt|real\s*property\s*tax|fee|fees|closing|how\s*much|magkano|budget|afford|down)\b/i;
+
+// Exact figures the AI should present verbatim (avoids 4o-mini arithmetic slips).
+function ctxCostReference(ctx: any): string {
+  const v = Number(ctx?.zonalValue);
+  if (!isFinite(v) || v <= 0) return "";
+  const area = 250;
+  const c = computeCosts({ price: estimatedValue(v, area) });
+  const p = (n: number) => "₱" + Math.round(n).toLocaleString("en-PH");
+  return (
+    `\n\n[REFERENCE FIGURES computed by the app — use these exact numbers if the question is about costs, taxes, or financing. ` +
+    `Illustrative for a ${area} sqm lot at ₱${v.toLocaleString("en-PH")}/sqm (apply the "higher of price or zonal value" rule; rates vary by LGU; estimates only):\n` +
+    `• Estimated value (${area} sqm): ${p(c.price)}\n` +
+    `• Capital Gains Tax (6%, seller): ${p(c.cgt)}\n` +
+    `• Documentary Stamp Tax (1.5%, buyer): ${p(c.dst)}\n` +
+    `• Transfer Tax (0.75%, buyer): ${p(c.transferTax)}\n` +
+    `• Registration fee (~0.25%, buyer): ${p(c.registrationFee)}\n` +
+    `• Total taxes & fees: ${p(c.totalFees)}\n` +
+    `• Monthly amortization (80% loan, 6.5% p.a., 20 yrs): ${p(c.monthlyAmortization)}/mo\n` +
+    `Scale value/taxes linearly with area; recompute for any down-payment/rate/term the user gives.]`
+  );
+}
 
 export default function AssistantScreen() {
   const { token } = useAuth();
@@ -98,7 +123,9 @@ export default function AssistantScreen() {
     scrollEnd();
     try {
       const domain = ctxRef.current?.province ? provinceToDomain(ctxRef.current.province) : "cebu.zonalvalue.com";
-      const { answer } = await askAssistant(q, { domain, history, context: ctxRef.current, token });
+      // For cost/tax/financing questions about a selected property, hand the AI exact app-computed figures.
+      const apiQuestion = COST_INTENT.test(q) ? q + ctxCostReference(ctxRef.current) : q;
+      const { answer } = await askAssistant(apiQuestion, { domain, history, context: ctxRef.current, token });
       setLoading(false);
       const reply = answer || "Sorry, I couldn't reach the data just now. Please try again.";
       setMessages((m) => [...m, { role: "assistant", content: "" }]);
