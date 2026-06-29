@@ -20,6 +20,15 @@ export function mapHtml(key: string, night = false): string {
 </style></head><body><div id="map"></div>
 <script>
   var map, overlay, PINS=[], LAYERS={};
+  // Hazard overlays (esp. raster tiles) re-fetch on every zoom level and flicker while
+  // tiles stream in. Hide them during the zoom gesture, fade them back once the map settles.
+  var hazHidden=false, fadeRAF=0;
+  function setRaster(v){ for(var k in LAYERS){ var L=LAYERS[k]; if(L&&L.raster) L.obj.setOpacity(v); } }
+  function setVectorMap(m){ for(var k in LAYERS){ var L=LAYERS[k]; if(L&&!L.raster&&L.obj) L.obj.setMap(m); } }
+  function hazCount(){ var n=0; for(var k in LAYERS){ if(LAYERS[k]) n++; } return n; }
+  function hideHaz(){ if(hazHidden||!hazCount()) return; hazHidden=true; if(fadeRAF){cancelAnimationFrame(fadeRAF);fadeRAF=0;} setRaster(0); setVectorMap(null); }
+  function showHaz(){ if(!hazHidden) return; hazHidden=false; setVectorMap(map);
+    var o=0; (function step(){ if(hazHidden) return; o+=0.14; var done=o>=0.55; setRaster(done?0.55:o); if(!done) fadeRAF=requestAnimationFrame(step); })(); }
   // Brand-navy "night" map style.
   var NIGHT_STYLE=[
     {elementType:"geometry",stylers:[{color:"#0f1830"}]},
@@ -51,7 +60,8 @@ export function mapHtml(key: string, night = false): string {
     overlay.draw=function(){ render(); };
     overlay.onRemove=function(){};
     overlay.setMap(map);
-    map.addListener('idle', function(){ var b=map.getBounds(); if(!b) return; var ne=b.getNorthEast(), sw=b.getSouthWest();
+    map.addListener('zoom_changed', hideHaz);   // hide hazard overlays while zooming → no flicker
+    map.addListener('idle', function(){ showHaz(); var b=map.getBounds(); if(!b) return; var ne=b.getNorthEast(), sw=b.getSouthWest();
       post({type:'bounds', minLat:sw.lat(), maxLat:ne.lat(), minLon:sw.lng(), maxLon:ne.lng()}); });
     map.addListener('click', function(e){
       if(e.placeId){ e.stop(); post({type:'poi', lat:e.latLng.lat(), lon:e.latLng.lng(), placeId:e.placeId}); }

@@ -51,6 +51,8 @@ export default function MapScreen() {
   const web = useRef<WebView>(null);
   // Build the map HTML once (captures the initial theme); toggles use setNight via inject.
   const html = useMemo(() => mapHtml(KEY, isDark), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Stable source object so unrelated re-renders never reload the WebView (avoids map flash).
+  const source = useMemo(() => ({ html, baseUrl: "https://zonalvalue.ph" }), [html]);
   const [q, setQ] = useState("");
   const [sugs, setSugs] = useState<Suggestion[]>([]);
   const [mapType, setMapType] = useState<"roadmap" | "hybrid">("roadmap");
@@ -217,7 +219,7 @@ export default function MapScreen() {
         ref={web}
         style={st.web}
         originWhitelist={["*"]}
-        source={{ html, baseUrl: "https://zonalvalue.ph" }}
+        source={source}
         javaScriptEnabled
         domStorageEnabled
         onMessage={onMessage}
