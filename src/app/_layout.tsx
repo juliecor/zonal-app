@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { LoginScreen } from "@/components/LoginScreen";
+import { LockScreen } from "@/components/LockScreen";
 import { Logo } from "@/components/Logo";
 import { Intro } from "@/components/Intro";
 import { ThemeProvider, useTheme } from "@/theme/theme";
@@ -14,7 +15,7 @@ import { SERIF } from "@/theme/zonal";
 
 // Hard gate: a cinematic intro on launch, then sign-in (like the website), then the app.
 function Gate({ children }: { children: ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, locked } = useAuth();
   const { c } = useTheme();
   const [introDone, setIntroDone] = useState(false);
 
@@ -31,6 +32,7 @@ function Gate({ children }: { children: ReactNode }) {
     );
   }
   if (!user) return <LoginScreen />;
+  if (locked) return <LockScreen />;
   return <>{children}</>;
 }
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import * as LocalAuthentication from "expo-local-authentication";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -34,12 +35,39 @@ function NightToggle() {
 }
 
 export default function ProfileScreen() {
-  const { user, loading, signOut, token } = useAuth();
+  const { user, loading, signOut, token, biometricEnabled, enableBiometric, disableBiometric } = useAuth();
   const { c, isDark } = useTheme();
   const s = useMemo(() => makeStyles(c), [c]);
   const [creditsOpen, setCreditsOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [pending, setPending] = useState(0);
+  const [bioSupported, setBioSupported] = useState(false);
+  const [bioLabel, setBioLabel] = useState("Biometric");
+
+  // Does this device have Face ID / fingerprint set up?
+  useEffect(() => {
+    (async () => {
+      try {
+        const [hw, enrolled, types] = await Promise.all([
+          LocalAuthentication.hasHardwareAsync(),
+          LocalAuthentication.isEnrolledAsync(),
+          LocalAuthentication.supportedAuthenticationTypesAsync(),
+        ]);
+        setBioSupported(hw && enrolled);
+        if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) setBioLabel("Face ID");
+        else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) setBioLabel("Fingerprint");
+      } catch { /* ignore */ }
+    })();
+  }, []);
+
+  async function onToggleBio(v: boolean) {
+    try {
+      if (v) await enableBiometric();
+      else await disableBiometric();
+    } catch (e: any) {
+      Alert.alert("Biometric unlock", e?.message || "Couldn't change the setting.");
+    }
+  }
 
   // Admins: how many credit requests await review (refreshes when the modal closes).
   useEffect(() => {
@@ -92,6 +120,21 @@ export default function ProfileScreen() {
           </View>
           <NightToggle />
         </View>
+
+        {/* Biometric app-lock */}
+        {bioSupported && (
+          <View style={s.apprCard}>
+            <View style={s.apprIc}><Ionicons name="finger-print" size={18} color={isDark ? c.goldLite : c.goldDeep} /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.apprT}>{bioLabel} unlock</Text>
+              <Text style={s.apprSub}>Require {bioLabel} to open the app.</Text>
+            </View>
+            <Switch
+              value={biometricEnabled} onValueChange={onToggleBio}
+              trackColor={{ false: c.line, true: c.gold }} thumbColor="#fff" ios_backgroundColor={c.line}
+            />
+          </View>
+        )}
 
         <View style={s.balCard}>
           <View>

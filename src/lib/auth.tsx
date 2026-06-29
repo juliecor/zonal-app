@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import * as SecureStore from "expo-secure-store";
+import * as LocalAuthentication from "expo-local-authentication";
 
 import {
   authLogin, authLogout, authMe, authRegister, authRequestLoginOtp, authVerifyLoginOtp, authVerifyOtp,
@@ -7,6 +8,7 @@ import {
 } from "@/lib/api";
 
 const TOKEN_KEY = "zv_auth_token";
+const BIO_KEY = "zv_biometric"; // "1" = biometric app-lock enabled
 
 interface AuthState {
   user: AuthUser | null;
@@ -19,6 +21,12 @@ interface AuthState {
   verifyLoginOtp: (userId: number, code: string) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
+  // Biometric app-lock (Face ID / fingerprint)
+  biometricEnabled: boolean;
+  locked: boolean;
+  unlock: () => Promise<boolean>;
+  enableBiometric: () => Promise<void>;
+  disableBiometric: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthState | null>(null);
@@ -27,17 +35,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [locked, setLocked] = useState(false);
 
-  // Restore a saved session on launch.
+  // Restore a saved session on launch (and lock it behind biometrics if enabled).
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const t = await SecureStore.getItemAsync(TOKEN_KEY);
+        const [t, bio] = await Promise.all([
+          SecureStore.getItemAsync(TOKEN_KEY),
+          SecureStore.getItemAsync(BIO_KEY),
+        ]);
+        const bioOn = bio === "1";
+        if (alive) setBiometricEnabled(bioOn);
         if (t) {
           const u = await authMe(t);
           if (alive) {
-            if (u) { setToken(t); setUser(u); }
+            if (u) { setToken(t); setUser(u); if (bioOn) setLocked(true); }
             else await SecureStore.deleteItemAsync(TOKEN_KEY);
           }
         }
@@ -77,13 +92,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await SecureStore.deleteItemAsync(TOKEN_KEY);
       setToken(null);
       setUser(null);
+      setLocked(false);
     },
     async refresh() {
       if (!token) return;
       const u = await authMe(token);
       if (u) setUser(u);
     },
-  }), [user, token, loading]);
+    biometricEnabled,
+    locked,
+    async unlock() {
+      try {
+        const r = await LocalAuthentication.authenticateAsync({
+          promptMessage: "Unlock zonalvalue.ph",
+          fallbackLabel: "Use device passcode",
+        });
+        if (r.success) { setLocked(false); return true; }
+      } catch { /* ignore */ }
+      return false;
+    },
+    async enableBiometric() {
+      const hw = await LocalAuthentication.hasHardwareAsync();
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      if (!hw || !enrolled) throw new Error("No Face ID or fingerprint is set up on this device.");
+      const r = await LocalAuthentication.authenticateAsync({ promptMessage: "Confirm to turn on biometric unlock" });
+      if (!r.success) throw new Error("Couldn't verify — biometric unlock was not turned on.");
+      await SecureStore.setItemAsync(BIO_KEY, "1");
+      setBiometricEnabled(true);
+    },
+    async disableBiometric() {
+      await SecureStore.deleteItemAsync(BIO_KEY);
+      setBiometricEnabled(false);
+      setLocked(false);
+    },
+  }), [user, token, loading, biometricEnabled, locked]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

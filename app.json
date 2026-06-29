@@ -32,7 +32,11 @@
         }
       ],
       "expo-secure-store",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-local-authentication",
+        { "faceIDPermission": "Unlock zonalvalue.ph with Face ID." }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
