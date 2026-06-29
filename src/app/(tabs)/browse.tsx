@@ -9,6 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Logo } from "@/components/Logo";
 import { PickerModal } from "@/components/PickerModal";
 import { ParcelCard } from "@/components/ParcelCard";
+import { RequestCreditsModal } from "@/components/RequestCreditsModal";
 import { SectionHeader } from "@/components/SectionHeader";
 import { useAuth } from "@/lib/auth";
 import {
@@ -41,6 +42,7 @@ export default function ZonalsScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [creditsOpen, setCreditsOpen] = useState(false);
 
   const [cityModal, setCityModal] = useState(false);
   const [brgyModal, setBrgyModal] = useState(false);
@@ -152,7 +154,14 @@ export default function ZonalsScreen() {
           ) : loading ? (
             <View style={s.center}><ActivityIndicator color={c.gold} /><Text style={s.dim}>Loading {titleCase(city)}…</Text></View>
           ) : err === "OUT_OF_CREDITS" ? (
-            <View style={s.center}><Ionicons name="server-outline" size={26} color={c.slate} /><Text style={s.dim}>You're out of search credits. Request more from your account or ask an admin.</Text></View>
+            <View style={s.center}>
+              <Ionicons name="server-outline" size={26} color={c.slate} />
+              <Text style={s.dim}>You're out of search credits. Request more and an admin will top up your account.</Text>
+              <Pressable onPress={() => setCreditsOpen(true)} style={s.reqBtn}>
+                <Ionicons name="add-circle-outline" size={17} color="#16223a" />
+                <Text style={s.reqBtnT}>Request credits</Text>
+              </Pressable>
+            </View>
           ) : err === "UNAUTHORIZED" ? (
             <View style={s.center}><Ionicons name="lock-closed-outline" size={26} color={c.slate} /><Text style={s.dim}>Please sign in again to search records.</Text></View>
           ) : err ? (
@@ -186,6 +195,7 @@ export default function ZonalsScreen() {
       <PickerModal visible={provModal} title="Province" items={provinces} onSelect={(p) => { if (p) setProv(p); }} onClose={() => setProvModal(false)} />
       <PickerModal visible={cityModal} title={`Cities in ${titleCase(prov)}`} items={cities} onSelect={pickCity} onClose={() => setCityModal(false)} />
       <PickerModal visible={brgyModal} title="Barangay" items={brgys} allLabel="All barangays" onSelect={(b) => setBrgy(b)} onClose={() => setBrgyModal(false)} />
+      <RequestCreditsModal visible={creditsOpen} onClose={() => setCreditsOpen(false)} />
     </View>
   );
 }
@@ -239,6 +249,8 @@ function makeStyles(c: Palette) {
     results: { paddingHorizontal: 16, paddingTop: 16 },
     center: { alignItems: "center", justifyContent: "center", gap: 11, paddingVertical: 44, paddingHorizontal: 24 },
     dim: { color: c.slate, fontSize: 13, textAlign: "center", lineHeight: 19 },
+    reqBtn: { marginTop: 6, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: c.gold, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 12, shadowColor: c.goldDeep, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 5 },
+    reqBtnT: { color: "#16223a", fontWeight: "800", fontSize: 13.5 },
     more: { marginTop: 14, alignItems: "center", justifyContent: "center", backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 12, paddingVertical: 13 },
     moreT: { color: c.isDark ? c.goldLite : c.navy, fontWeight: "700", fontSize: 13 },
   });

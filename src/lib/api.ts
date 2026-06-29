@@ -344,6 +344,46 @@ export async function authLogout(token: string): Promise<void> {
   } catch { /* ignore */ }
 }
 
+/* ──────────────────── Search-credit (token) requests ──────────────────── */
+
+export interface TokenRequest {
+  id: number;
+  quantity: number;
+  message: string | null;
+  status: "pending" | "approved" | "denied";
+  created_at?: string;
+}
+
+/** Ask an admin for more search credits (creates a pending request). */
+export async function requestTokens(token: string, quantity: number, message?: string): Promise<TokenRequest> {
+  const res = await fetch(`${API_BASE}/token-requests`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ quantity, message: message?.trim() || undefined }),
+  });
+  let j: any = null;
+  try { j = await res.json(); } catch { /* non-JSON */ }
+  if (!res.ok) {
+    const firstErr = j?.errors ? (Object.values(j.errors)[0] as any)?.[0] : undefined;
+    throw new Error(j?.message || firstErr || `Request failed (${res.status})`);
+  }
+  return j?.request ?? j;
+}
+
+/** The signed-in user's own credit requests (newest first). */
+export async function myTokenRequests(token: string): Promise<TokenRequest[]> {
+  try {
+    const res = await fetch(`${API_BASE}/token-requests/mine`, {
+      headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return [];
+    const j = await res.json();
+    return Array.isArray(j?.data) ? j.data : Array.isArray(j) ? j : [];
+  } catch {
+    return [];
+  }
+}
+
 /* ───────────────────────── AI assistant ───────────────────────── */
 
 export interface ChatMsg { role: "user" | "assistant"; content: string }

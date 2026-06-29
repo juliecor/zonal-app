@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { Image } from "expo-image";
@@ -9,6 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/lib/auth";
 import { LoginScreen } from "@/components/LoginScreen";
 import { Logo } from "@/components/Logo";
+import { RequestCreditsModal } from "@/components/RequestCreditsModal";
 import { useTheme, type Palette } from "@/theme/theme";
 import { SERIF, titleCase } from "@/theme/zonal";
 
@@ -34,6 +35,7 @@ export default function ProfileScreen() {
   const { user, loading, signOut } = useAuth();
   const { c, isDark } = useTheme();
   const s = useMemo(() => makeStyles(c), [c]);
+  const [creditsOpen, setCreditsOpen] = useState(false);
 
   if (loading) {
     return <View style={s.root}><View style={s.center}><ActivityIndicator color={c.gold} /></View></View>;
@@ -88,11 +90,18 @@ export default function ProfileScreen() {
         </View>
         <Text style={s.note}>Credits unlock the full street-by-street record search. Map values, scans, hazards and the AI are free.</Text>
 
+        <Pressable onPress={() => setCreditsOpen(true)} style={s.reqBtn}>
+          <Ionicons name="add-circle-outline" size={18} color={isDark ? c.goldLite : c.navy} />
+          <Text style={s.reqBtnT}>Request more credits</Text>
+        </Pressable>
+
         <Pressable onPress={signOut} style={s.signout}>
           <Ionicons name="log-out-outline" size={17} color={c.red} />
           <Text style={s.signoutT}>Sign out</Text>
         </Pressable>
       </ScrollView>
+
+      <RequestCreditsModal visible={creditsOpen} onClose={() => setCreditsOpen(false)} />
     </View>
   );
 }
@@ -127,7 +136,9 @@ function makeStyles(c: Palette) {
     balLbl: { fontSize: 9, fontWeight: "800", letterSpacing: 1.2, color: c.goldDeep },
     balNum: { fontFamily: SERIF, fontSize: 30, fontWeight: "700", color: c.ink, marginTop: 3 },
     note: { fontSize: 11.5, color: c.slate, marginTop: 12, lineHeight: 17 },
-    signout: { marginTop: 22, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: c.isDark ? "rgba(240,82,74,0.4)" : "#f6c2c2", backgroundColor: c.isDark ? "rgba(240,82,74,0.12)" : "#fde7e7", borderRadius: 13, paddingVertical: 13 },
+    reqBtn: { marginTop: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: c.isDark ? "rgba(201,168,76,0.4)" : c.navy, backgroundColor: c.card, borderRadius: 13, paddingVertical: 13 },
+    reqBtnT: { color: c.isDark ? c.goldLite : c.navy, fontWeight: "800", fontSize: 13.5 },
+    signout: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: c.isDark ? "rgba(240,82,74,0.4)" : "#f6c2c2", backgroundColor: c.isDark ? "rgba(240,82,74,0.12)" : "#fde7e7", borderRadius: 13, paddingVertical: 13 },
     signoutT: { color: c.red, fontWeight: "800", fontSize: 13.5 },
   });
 }
