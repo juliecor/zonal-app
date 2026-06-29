@@ -42,9 +42,9 @@ export function LockScreen() {
           <Text style={s.brand}>zonalvalue<Text style={{ color: c.gold }}>.</Text>ph</Text>
           <Text style={s.sub}>{name ? `Welcome back, ${name}` : "Locked"}</Text>
 
-          <View style={s.ring}>
+          <Pressable onPress={attempt} disabled={busy} style={({ pressed }) => [s.ring, pressed && { opacity: 0.7 }]}>
             <Ionicons name="finger-print" size={42} color={c.isDark ? c.goldLite : c.navy} />
-          </View>
+          </Pressable>
 
           {failed && <Text style={s.failed}>Authentication failed or cancelled. Try again.</Text>}
 
