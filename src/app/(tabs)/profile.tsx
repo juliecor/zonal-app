@@ -7,9 +7,11 @@ import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 
 import { useAuth } from "@/lib/auth";
+import { adminListTokenRequests } from "@/lib/api";
 import { LoginScreen } from "@/components/LoginScreen";
 import { Logo } from "@/components/Logo";
 import { RequestCreditsModal } from "@/components/RequestCreditsModal";
+import { AdminCreditRequestsModal } from "@/components/AdminCreditRequestsModal";
 import { useTheme, type Palette } from "@/theme/theme";
 import { SERIF, titleCase } from "@/theme/zonal";
 
@@ -32,10 +34,19 @@ function NightToggle() {
 }
 
 export default function ProfileScreen() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, token } = useAuth();
   const { c, isDark } = useTheme();
   const s = useMemo(() => makeStyles(c), [c]);
   const [creditsOpen, setCreditsOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
+  const [pending, setPending] = useState(0);
+
+  // Admins: how many credit requests await review (refreshes when the modal closes).
+  useEffect(() => {
+    if (user?.role === "admin" && token) {
+      adminListTokenRequests(token, "pending").then((r) => setPending(r.length)).catch(() => {});
+    }
+  }, [user?.role, token, adminOpen]);
 
   if (loading) {
     return <View style={s.root}><View style={s.center}><ActivityIndicator color={c.gold} /></View></View>;
@@ -102,6 +113,18 @@ export default function ProfileScreen() {
           </Pressable>
         )}
 
+        {isAdmin && (
+          <Pressable onPress={() => setAdminOpen(true)} style={s.adminBtn}>
+            <View style={s.adminIc}><Ionicons name="clipboard-outline" size={18} color={isDark ? c.goldLite : c.navy} /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={s.adminT}>Credit requests</Text>
+              <Text style={s.adminSub}>Review &amp; approve user requests</Text>
+            </View>
+            {pending > 0 && <View style={s.badge}><Text style={s.badgeT}>{pending}</Text></View>}
+            <Ionicons name="chevron-forward" size={18} color={c.slate} />
+          </Pressable>
+        )}
+
         <Pressable onPress={signOut} style={s.signout}>
           <Ionicons name="log-out-outline" size={17} color={c.red} />
           <Text style={s.signoutT}>Sign out</Text>
@@ -109,6 +132,7 @@ export default function ProfileScreen() {
       </ScrollView>
 
       <RequestCreditsModal visible={creditsOpen} onClose={() => setCreditsOpen(false)} />
+      <AdminCreditRequestsModal visible={adminOpen} onClose={() => setAdminOpen(false)} />
     </View>
   );
 }
@@ -145,6 +169,12 @@ function makeStyles(c: Palette) {
     note: { fontSize: 11.5, color: c.slate, marginTop: 12, lineHeight: 17 },
     reqBtn: { marginTop: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: c.isDark ? "rgba(201,168,76,0.4)" : c.navy, backgroundColor: c.card, borderRadius: 13, paddingVertical: 13 },
     reqBtnT: { color: c.isDark ? c.goldLite : c.navy, fontWeight: "800", fontSize: 13.5 },
+    adminBtn: { marginTop: 14, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 14, padding: 14 },
+    adminIc: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: c.chip },
+    adminT: { fontSize: 14.5, fontWeight: "800", color: c.ink },
+    adminSub: { fontSize: 11.5, color: c.slate, marginTop: 2 },
+    badge: { minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, alignItems: "center", justifyContent: "center", backgroundColor: c.red },
+    badgeT: { color: "#fff", fontSize: 11.5, fontWeight: "800" },
     signout: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: c.isDark ? "rgba(240,82,74,0.4)" : "#f6c2c2", backgroundColor: c.isDark ? "rgba(240,82,74,0.12)" : "#fde7e7", borderRadius: 13, paddingVertical: 13 },
     signoutT: { color: c.red, fontWeight: "800", fontSize: 13.5 },
   });

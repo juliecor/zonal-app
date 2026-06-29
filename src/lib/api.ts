@@ -384,6 +384,41 @@ export async function myTokenRequests(token: string): Promise<TokenRequest[]> {
   }
 }
 
+/* ── Admin: review credit requests (admin role only) ── */
+export interface AdminTokenRequest extends TokenRequest {
+  user_id: number;
+  user?: { id: number; name?: string; email?: string; first_name?: string; last_name?: string };
+}
+
+export async function adminListTokenRequests(
+  token: string, status: "pending" | "approved" | "denied" | "" = "pending",
+): Promise<AdminTokenRequest[]> {
+  try {
+    const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+    const res = await fetch(`${API_BASE}/admin/token-requests${qs}`, {
+      headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return [];
+    const j = await res.json();
+    return Array.isArray(j?.data) ? j.data : Array.isArray(j) ? j : [];
+  } catch {
+    return [];
+  }
+}
+
+async function adminTokenAction(token: string, id: number, action: "approve" | "deny"): Promise<void> {
+  const res = await fetch(`${API_BASE}/admin/token-requests/${id}/${action}`, {
+    method: "POST",
+    headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    let j: any = null; try { j = await res.json(); } catch { /* non-JSON */ }
+    throw new Error(j?.message || `Failed to ${action} (${res.status})`);
+  }
+}
+export const adminApproveTokenRequest = (token: string, id: number) => adminTokenAction(token, id, "approve");
+export const adminDenyTokenRequest = (token: string, id: number) => adminTokenAction(token, id, "deny");
+
 /* ───────────────────────── AI assistant ───────────────────────── */
 
 export interface ChatMsg { role: "user" | "assistant"; content: string }
