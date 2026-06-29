@@ -4,6 +4,7 @@ import {
   StyleSheet, Text, TextInput, View,
 } from "react-native";
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -149,10 +150,7 @@ export default function AssistantScreen() {
       <StatusBar style="light" />
       <SafeAreaView edges={["top"]} style={{ backgroundColor: c.header }}>
         <View style={s.head}>
-          <View style={s.bot}><Text style={s.botT}>✦</Text></View>
-          <View>
-            <Text style={s.title}>AI Zonal Assistant</Text>
-          </View>
+          <Image source={require("../../../assets/images/zonal-ai-mark.png")} style={s.headLogo} contentFit="contain" />
         </View>
       </SafeAreaView>
 
@@ -200,7 +198,8 @@ export default function AssistantScreen() {
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: c.paper },
-    head: { flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 15, paddingVertical: 11 },
+    head: { alignItems: "center", justifyContent: "center", paddingHorizontal: 15, paddingVertical: 8 },
+  headLogo: { width: 46, height: 46 },
     bot: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: c.goldLite },
     botT: { color: "#16223a", fontWeight: "800", fontSize: 14 },
     title: { fontFamily: SERIF, fontSize: 15, fontWeight: "600", color: "#fff" },

@@ -1,4 +1,4 @@
-import { type ColorValue } from "react-native";
+import { View, type ColorValue } from "react-native";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -6,14 +6,20 @@ import { Image } from "expo-image";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/theme/theme";
 
-// AI tab icon = the Zonal AI logo image.
-function AiTabIcon({ size, focused }: { size: number; focused: boolean }) {
+// AI tab = a big raised center circle showing the Zonal AI logo (FAB style).
+function AiTabIcon({ focused }: { focused: boolean }) {
+  const { c } = useTheme();
   return (
-    <Image
-      source={require("../../../assets/images/zonal-ai.png")}
-      style={{ width: size + 6, height: size + 6, opacity: focused ? 1 : 0.6 }}
-      contentFit="contain"
-    />
+    <View
+      style={{
+        top: -20, width: 62, height: 62, borderRadius: 31, backgroundColor: "#fff",
+        borderWidth: 2.5, borderColor: c.gold, alignItems: "center", justifyContent: "center", overflow: "hidden",
+        shadowColor: "#0c1430", shadowOpacity: 0.32, shadowRadius: 9, shadowOffset: { width: 0, height: 5 }, elevation: 10,
+        opacity: focused ? 1 : 0.92,
+      }}
+    >
+      <Image source={require("../../../assets/images/zonal-ai-mark.png")} style={{ width: 56, height: 56 }} contentFit="cover" />
+    </View>
   );
 }
 
@@ -56,7 +62,7 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="assistant"
-        options={{ title: "AI", tabBarIcon: ({ size, focused }) => <AiTabIcon size={size} focused={focused} /> }}
+        options={{ title: "AI", tabBarLabel: () => null, tabBarIcon: ({ focused }) => <AiTabIcon focused={focused} /> }}
       />
       <Tabs.Screen
         name="browse"
