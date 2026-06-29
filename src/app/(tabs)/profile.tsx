@@ -45,6 +45,7 @@ export default function ProfileScreen() {
   if (!user) return <LoginScreen />;
 
   const initials = ((user.first_name?.[0] || user.name?.[0] || "U") + (user.last_name?.[0] || user.name?.split(" ")[1]?.[0] || "")).toUpperCase();
+  const isAdmin = user.role === "admin"; // admins have unlimited searches (no credits, no requests)
 
   return (
     <View style={s.root}>
@@ -83,17 +84,23 @@ export default function ProfileScreen() {
 
         <View style={s.balCard}>
           <View>
-            <Text style={s.balLbl}>SEARCH CREDITS</Text>
-            <Text style={s.balNum}>{user.token_balance ?? "—"}</Text>
+            <Text style={s.balLbl}>{isAdmin ? "SEARCH ACCESS" : "SEARCH CREDITS"}</Text>
+            <Text style={s.balNum}>{isAdmin ? "Unlimited" : (user.token_balance ?? "—")}</Text>
           </View>
-          <Ionicons name="server-outline" size={26} color={c.gold} />
+          <Ionicons name={isAdmin ? "infinite" : "server-outline"} size={26} color={c.gold} />
         </View>
-        <Text style={s.note}>Credits unlock the full street-by-street record search. Map values, scans, hazards and the AI are free.</Text>
+        <Text style={s.note}>
+          {isAdmin
+            ? "As an admin, you have unlimited record searches — no credits needed."
+            : "Credits unlock the full street-by-street record search. Map values, scans, hazards and the AI are free."}
+        </Text>
 
-        <Pressable onPress={() => setCreditsOpen(true)} style={s.reqBtn}>
-          <Ionicons name="add-circle-outline" size={18} color={isDark ? c.goldLite : c.navy} />
-          <Text style={s.reqBtnT}>Request more credits</Text>
-        </Pressable>
+        {!isAdmin && (
+          <Pressable onPress={() => setCreditsOpen(true)} style={s.reqBtn}>
+            <Ionicons name="add-circle-outline" size={18} color={isDark ? c.goldLite : c.navy} />
+            <Text style={s.reqBtnT}>Request more credits</Text>
+          </Pressable>
+        )}
 
         <Pressable onPress={signOut} style={s.signout}>
           <Ionicons name="log-out-outline" size={17} color={c.red} />
