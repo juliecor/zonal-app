@@ -6,6 +6,17 @@ import { Image } from "expo-image";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/theme/theme";
 
+// AI tab icon = the Zonal AI logo image.
+function AiTabIcon({ size, focused }: { size: number; focused: boolean }) {
+  return (
+    <Image
+      source={require("../../../assets/images/zonal-ai.png")}
+      style={{ width: size + 6, height: size + 6, opacity: focused ? 1 : 0.6 }}
+      contentFit="contain"
+    />
+  );
+}
+
 // Profile tab icon = the user's S3 photo when set, else the person icon.
 function ProfileTabIcon({ color, size, focused }: { color: ColorValue; size: number; focused: boolean }) {
   const { user } = useAuth();
@@ -45,7 +56,7 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="assistant"
-        options={{ title: "AI", tabBarIcon: ({ color, size }) => <Ionicons name="sparkles" size={size} color={color} /> }}
+        options={{ title: "AI", tabBarIcon: ({ size, focused }) => <AiTabIcon size={size} focused={focused} /> }}
       />
       <Tabs.Screen
         name="browse"

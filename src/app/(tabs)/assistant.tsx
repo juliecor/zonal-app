@@ -152,7 +152,6 @@ export default function AssistantScreen() {
           <View style={s.bot}><Text style={s.botT}>✦</Text></View>
           <View>
             <Text style={s.title}>AI Zonal Assistant</Text>
-            <Text style={s.sub}>Grounded in BIR + PHIVOLCS</Text>
           </View>
         </View>
       </SafeAreaView>
