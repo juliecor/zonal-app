@@ -30,6 +30,14 @@ export function mapHtml(key: string, night = false): string {
   function hideHaz(){ if(hazHidden||!rasterCount()) return; hazHidden=true; if(fadeRAF){cancelAnimationFrame(fadeRAF);fadeRAF=0;} setRaster(0); }
   function showHaz(){ if(!hazHidden) return; hazHidden=false;
     var o=0; (function step(){ if(hazHidden) return; o+=0.16; var done=o>=0.55; setRaster(done?0.55:o); if(!done) fadeRAF=requestAnimationFrame(step); })(); }
+  // Raster hazard tiles. Flood uses a blue palette on satellite (?sat=1) so it reads as water.
+  var MAPTYPE='roadmap';
+  var TILE={flood:'flood-tile',landslide:'landslide-tile',stormsurge:'stormsurge-tile'};
+  var VEC={faults:'/api/faults',liquefaction:'/hazard/liquefaction_vec.geojson',tsunami:'/hazard/tsunami_vec.geojson'};
+  function rasterUrl(name,c,z){ return 'https://zonalvalue.ph/api/'+TILE[name]+'/'+z+'/'+c.x+'/'+c.y+(MAPTYPE==='hybrid'?'?sat=1':''); }
+  function makeRaster(name){ return new google.maps.ImageMapType({ tileSize:new google.maps.Size(256,256), opacity: hazHidden?0:0.55, getTileUrl:function(c,z){ return rasterUrl(name,c,z); } }); }
+  // Re-create raster overlays so they re-request tiles with the current palette (Map↔Satellite).
+  function refreshRaster(){ if(!map) return; var arr=map.overlayMapTypes; for(var k in LAYERS){ var L=LAYERS[k]; if(L&&L.raster){ for(var i=0;i<arr.getLength();i++){ if(arr.getAt(i)===L.obj){ arr.removeAt(i); break; } } var t=makeRaster(k); arr.push(t); L.obj=t; } } }
   // Brand-navy "night" map style.
   var NIGHT_STYLE=[
     {elementType:"geometry",stylers:[{color:"#0f1830"}]},
@@ -86,17 +94,14 @@ export function mapHtml(key: string, night = false): string {
   window.ZV={
     setPins:function(arr){ PINS=Array.isArray(arr)?arr:[]; render(); },
     center:function(lat,lon,zoom){ if(!map) return; map.panTo({lat:lat,lng:lon}); if(zoom) map.setZoom(zoom); },
-    setType:function(t){ if(map) map.setMapTypeId(t); },
+    setType:function(t){ if(!map) return; MAPTYPE=t; map.setMapTypeId(t); refreshRaster(); },
     setNight:function(on){ NIGHT=!!on; if(map){ map.setOptions({styles: on ? NIGHT_STYLE : []}); } document.body.style.background = on ? '#0a1022' : '#e8edf0'; },
     setLayer:function(name,on){
       if(!map) return;
-      var TILE={flood:'flood-tile',landslide:'landslide-tile',stormsurge:'stormsurge-tile'};
-      var VEC={faults:'/api/faults',liquefaction:'/hazard/liquefaction_vec.geojson',tsunami:'/hazard/tsunami_vec.geojson'};
       if(TILE[name]){
         if(on){
           if(LAYERS[name]) return;
-          var t=new google.maps.ImageMapType({ tileSize:new google.maps.Size(256,256), opacity:0.55,
-            getTileUrl:function(c,z){ return 'https://zonalvalue.ph/api/'+TILE[name]+'/'+z+'/'+c.x+'/'+c.y; } });
+          var t=makeRaster(name);
           map.overlayMapTypes.push(t); LAYERS[name]={obj:t,raster:true};
         } else if(LAYERS[name]){
           var arr=map.overlayMapTypes;
