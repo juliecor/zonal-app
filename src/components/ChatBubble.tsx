@@ -1,7 +1,10 @@
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import { Image } from "expo-image";
 
 import { useTheme, type Palette } from "@/theme/theme";
+
+const AI_MARK = require("../../assets/images/zonal-ai-mark.png");
 
 export function ChatBubble({ role, text }: { role: "user" | "assistant"; text: string }) {
   const { c } = useTheme();
@@ -9,7 +12,7 @@ export function ChatBubble({ role, text }: { role: "user" | "assistant"; text: s
   const me = role === "user";
   return (
     <View style={[b.wrap, me ? b.meWrap : b.aiWrap]}>
-      {!me && <View style={b.botMark}><Text style={b.botT}>✦</Text></View>}
+      {!me && <Image source={AI_MARK} style={b.botMark} contentFit="contain" />}
       <View style={[b.bub, me ? b.me : b.ai]}>
         <Text style={[b.t, me ? b.tMe : b.tAi]}>{text}</Text>
       </View>
@@ -22,8 +25,7 @@ function makeStyles(c: Palette) {
     wrap: { width: "100%", flexDirection: "row", alignItems: "flex-end", gap: 7 },
     meWrap: { justifyContent: "flex-end" },
     aiWrap: { justifyContent: "flex-start" },
-    botMark: { width: 24, height: 24, borderRadius: 8, backgroundColor: c.goldLite, alignItems: "center", justifyContent: "center", marginBottom: 2 },
-    botT: { color: "#16223a", fontSize: 12, fontWeight: "800" },
+    botMark: { width: 28, height: 28, marginBottom: 2 },
     bub: { maxWidth: "84%", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 11 },
     me: { backgroundColor: c.gold, borderBottomRightRadius: 5 },
     ai: {

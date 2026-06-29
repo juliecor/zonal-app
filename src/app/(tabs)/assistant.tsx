@@ -174,7 +174,7 @@ export default function AssistantScreen() {
         {messages.map((m, i) => <ChatBubble key={i} role={m.role} text={m.content} />)}
         {loading && (
           <View style={s.typing}>
-            <View style={s.botMark}><Text style={s.botMarkT}>✦</Text></View>
+            <Image source={require("../../../assets/images/zonal-ai-mark.png")} style={s.botMark} contentFit="contain" />
             <View style={s.typingBubble}><ActivityIndicator color={c.goldDeep} size="small" /><Text style={s.typingT}>Analyzing…</Text></View>
           </View>
         )}
@@ -218,8 +218,7 @@ function makeStyles(c: Palette) {
     tip: { fontSize: 11.5, color: c.slate, marginTop: 16, fontStyle: "italic", textAlign: "center" },
 
     typing: { flexDirection: "row", alignItems: "flex-end", gap: 7 },
-    botMark: { width: 24, height: 24, borderRadius: 8, backgroundColor: c.goldLite, alignItems: "center", justifyContent: "center", marginBottom: 2 },
-    botMarkT: { color: "#16223a", fontSize: 12, fontWeight: "800" },
+    botMark: { width: 28, height: 28, marginBottom: 2 },
     typingBubble: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 16, borderBottomLeftRadius: 5, paddingHorizontal: 13, paddingVertical: 11 },
     typingT: { color: c.slate, fontSize: 12.5, fontStyle: "italic" },
 
