@@ -22,13 +22,18 @@ async function getJSON(base: string, path: string, ms = 9000): Promise<any> {
   }
 }
 
-async function postJSON(base: string, path: string, body: any, ms = 20000): Promise<any> {
+async function postJSON(base: string, path: string, body: any, ms = 20000, token?: string | null): Promise<any> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
   try {
+    // Forward the signed-in token as the authToken cookie so protected lookups work — the
+    // website does this automatically via its login cookie. Without it, scan-area 401s and
+    // the app silently falls back to the sparse coordinate cache (which only covers Cebu).
+    const headers: Record<string, string> = { "Content-Type": "application/json", Accept: "application/json" };
+    if (token) headers["Cookie"] = `authToken=${encodeURIComponent(token)}`;
     const res = await fetch(`${base}${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers,
       body: JSON.stringify(body),
       signal: ctrl.signal,
     });
@@ -190,9 +195,10 @@ export interface ScanResult {
   scannedBarangay?: string;
 }
 
-/** Scan a map box for zonal values (Next.js, public). domain like "cebu.zonalvalue.com". */
-export async function scanArea(b: Bounds, domain: string, mode: "scan" | "" = "scan"): Promise<ScanResult> {
-  return postJSON(WEB_BASE, `/scan-area`, { ...b, domain, mode });
+/** Scan a map box for zonal values (Next.js). Pass the signed-in token so scan-area can read
+ *  the FULL BIR database for ANY province — the same way the website's login cookie does. */
+export async function scanArea(b: Bounds, domain: string, mode: "scan" | "" = "scan", token?: string | null): Promise<ScanResult> {
+  return postJSON(WEB_BASE, `/scan-area`, { ...b, domain, mode }, 20000, token);
 }
 
 /* ───────────────────────── Search ───────────────────────── */

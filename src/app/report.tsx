@@ -51,7 +51,7 @@ export default function ReportScreen() {
   const params = useLocalSearchParams<{ lat?: string; lon?: string; name?: string }>();
   const lat = Number(params.lat);
   const lon = Number(params.lon);
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { c } = useTheme();
   const s = useMemo(() => makeStyles(c), [c]);
 
@@ -70,7 +70,7 @@ export default function ReportScreen() {
       const v = await nearestValue(lat, lon).catch(() => null);
       const domain = await resolveDomain(lat, lon, v?.city, v?.province).catch(() => "cebu.zonalvalue.com");
       const d = 0.0032;
-      const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "").catch(() => null);
+      const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "", token).catch(() => null);
       if (!alive) return;
       const scanPt = scan?.points?.[0];
       const value = scanPt?.value_per_sqm

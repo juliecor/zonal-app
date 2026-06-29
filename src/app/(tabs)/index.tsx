@@ -41,7 +41,7 @@ interface Sheet {
 }
 
 export default function MapScreen() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { c, isDark } = useTheme();
   const st = useMemo(() => makeStyles(c), [c]);
   const chrome = c.isDark ? c.goldLite : c.navy; // icon/text accent on frosted controls
@@ -108,7 +108,7 @@ export default function MapScreen() {
       const near = await nearestValue(lat, lon).catch(() => null);
       const domain = await resolveDomain(lat, lon, near?.city, near?.province).catch(() => "cebu.zonalvalue.com");
       const d = 0.0032;
-      const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "").catch(() => null);
+      const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "", token).catch(() => null);
 
       let options: LandUse[] = scan?.classes?.length ? landUseFromClasses(scan.classes) : [];
       let defaultGroup = (scan?.defaultGroup as Group) || options[0]?.group || "residential";

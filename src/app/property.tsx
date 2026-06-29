@@ -17,9 +17,11 @@ import { nearestValue, preciseAddress, resolveDomain, scanArea, type ZPoint } fr
 import { buildLandUse, GROUP_LABEL, landUseFromClasses, type Group, type LandUse } from "@/lib/landuse";
 import { titleCase } from "@/theme/zonal";
 import { useTheme, type Palette } from "@/theme/theme";
+import { useAuth } from "@/lib/auth";
 
 export default function PropertyScreen() {
   const { c, isDark } = useTheme();
+  const { token } = useAuth();
   const s = useMemo(() => makeStyles(c), [c]);
   const params = useLocalSearchParams<{ lat?: string; lon?: string; name?: string }>();
   const lat = Number(params.lat);
@@ -40,7 +42,7 @@ export default function PropertyScreen() {
       const v = await nearestValue(lat, lon).catch(() => null);
       const domain = await resolveDomain(lat, lon, v?.city, v?.province).catch(() => "cebu.zonalvalue.com");
       const d = 0.0032;
-      const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "").catch(() => null);
+      const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "", token).catch(() => null);
       if (!alive) return;
 
       let opts: LandUse[] = scan?.classes?.length ? landUseFromClasses(scan.classes) : [];

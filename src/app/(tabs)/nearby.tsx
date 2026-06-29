@@ -15,12 +15,14 @@ import { hazardsAt, type HazardProfile } from "@/lib/hazards";
 import { nearestValue, preciseAddress, resolveDomain, scanArea, type ZPoint } from "@/lib/api";
 import { useTheme, type Palette } from "@/theme/theme";
 import { SERIF, titleCase } from "@/theme/zonal";
+import { useAuth } from "@/lib/auth";
 
 interface Info { lat: number; lon: number; value: number | null; code: string | null; name: string; addr: string }
 type Phase = "idle" | "locating" | "ready" | "denied" | "error";
 
 export default function NearbyScreen() {
   const { c } = useTheme();
+  const { token } = useAuth();
   const s = useMemo(() => makeStyles(c), [c]);
   const [phase, setPhase] = useState<Phase>("locating");
   const [info, setInfo] = useState<Info | null>(null);
@@ -46,7 +48,7 @@ export default function NearbyScreen() {
       const near = await nearestValue(lat, lon).catch(() => null);
       const domain = await resolveDomain(lat, lon, near?.city, near?.province).catch(() => "cebu.zonalvalue.com");
       const d = 0.0032;
-      const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "").catch(() => null);
+      const scan = await scanArea({ minLat: lat - d, maxLat: lat + d, minLon: lon - d, maxLon: lon + d }, domain, "", token).catch(() => null);
 
       const scanPt = scan?.points?.[0];
       const value = scanPt?.value_per_sqm
