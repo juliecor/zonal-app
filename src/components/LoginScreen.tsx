@@ -1,9 +1,8 @@
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from "react-native";
-import Svg, { Defs, Line, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -12,65 +11,31 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/lib/auth";
 import { authResendOtp } from "@/lib/api";
 import { Logo } from "@/components/Logo";
-import { SERIF, Z } from "@/theme/zonal";
+import { useTheme, type Palette } from "@/theme/theme";
+import { SERIF } from "@/theme/zonal";
 
 type Mode = "signin" | "register" | "otpEmail" | "otpCode" | "verify";
-
-const FIELD = "#16223f";
-const FIELD_BORDER = "rgba(255,255,255,0.10)";
-const MUTED = "rgba(255,255,255,0.6)";
-
-/** A precise cartographic backdrop — grid + contour lines, no blobs. */
-function Backdrop() {
-  const { width: w, height: h } = useWindowDimensions();
-  const step = 40;
-  const v: number[] = [];
-  const hz: number[] = [];
-  for (let x = step; x < w; x += step) v.push(x);
-  for (let y = step; y < h; y += step) hz.push(y);
-  return (
-    <Svg width={w} height={h} style={StyleSheet.absoluteFill}>
-      <Defs>
-        <LinearGradient id="bg" x1="0" y1="0" x2="0.3" y2="1">
-          <Stop offset="0" stopColor="#1d3066" />
-          <Stop offset="0.55" stopColor="#16264f" />
-          <Stop offset="1" stopColor="#0f1c3c" />
-        </LinearGradient>
-        <RadialGradient id="bgglow" cx="50%" cy="30%" r="60%">
-          <Stop offset="0" stopColor="#d9b85a" stopOpacity="0.16" />
-          <Stop offset="1" stopColor="#c9a84c" stopOpacity="0" />
-        </RadialGradient>
-      </Defs>
-      <Rect x={0} y={0} width={w} height={h} fill="url(#bg)" />
-      <Rect x={0} y={0} width={w} height={h} fill="url(#bgglow)" />
-      {v.map((x) => <Line key={`v${x}`} x1={x} y1={0} x2={x} y2={h} stroke="rgba(255,255,255,0.028)" strokeWidth={1} />)}
-      {hz.map((y) => <Line key={`h${y}`} x1={0} y1={y} x2={w} y2={y} stroke="rgba(255,255,255,0.028)" strokeWidth={1} />)}
-      {/* faint gold contour sweeps (lines, not blobs) */}
-      <Path d={`M0 ${h * 0.30} Q ${w * 0.55} ${h * 0.20} ${w} ${h * 0.34}`} stroke="rgba(201,168,76,0.16)" strokeWidth={1.4} fill="none" />
-      <Path d={`M0 ${h * 0.34} Q ${w * 0.5} ${h * 0.25} ${w} ${h * 0.38}`} stroke="rgba(201,168,76,0.07)" strokeWidth={1} fill="none" />
-      <Path d={`M0 ${h * 0.78} Q ${w * 0.45} ${h * 0.70} ${w} ${h * 0.84}`} stroke="rgba(76,108,180,0.18)" strokeWidth={1.2} fill="none" />
-    </Svg>
-  );
-}
 
 function Field(props: React.ComponentProps<typeof TextInput> & {
   icon: keyof typeof Ionicons.glyphMap;
   onFocusScroll?: (ref: React.RefObject<TextInput | null>) => void;
 }) {
   const { icon, onFocusScroll, ...rest } = props;
+  const { c } = useTheme();
+  const s = useMemo(() => makeStyles(c), [c]);
   const ref = useRef<TextInput>(null);
   const [focused, setFocused] = useState(false);
   return (
-    <View style={[st.field, focused && st.fieldFocus]}>
-      <Ionicons name={icon} size={18} color={focused ? Z.goldLite : "rgba(255,255,255,0.4)"} />
+    <View style={[s.field, focused && s.fieldFocus]}>
+      <Ionicons name={icon} size={18} color={focused ? c.gold : c.slate} />
       <TextInput
         ref={ref}
-        placeholderTextColor="rgba(255,255,255,0.38)"
+        placeholderTextColor={c.slate}
         autoCorrect={false}
         {...rest}
         onFocus={(e) => { setFocused(true); rest.onFocus?.(e); onFocusScroll?.(ref); }}
         onBlur={(e) => { setFocused(false); rest.onBlur?.(e); }}
-        style={st.fieldInput}
+        style={s.fieldInput}
       />
     </View>
   );
@@ -78,6 +43,8 @@ function Field(props: React.ComponentProps<typeof TextInput> & {
 
 export function LoginScreen() {
   const { signIn, register, verifyOtp, requestLoginOtp, verifyLoginOtp } = useAuth();
+  const { c, isDark } = useTheme();
+  const s = useMemo(() => makeStyles(c), [c]);
 
   // Android-safe keyboard handling: a keyboard-sized spacer gives scroll room, and we
   // scroll the focused field into the upper third so the keyboard never covers it.
@@ -90,7 +57,7 @@ export function LoginScreen() {
   const ensureVisible = (ref: React.RefObject<TextInput | null>) => {
     setTimeout(() => {
       ref.current?.measureInWindow((_x, y) => {
-        const target = screenH * 0.28;
+        const target = screenH * 0.24;
         if (y > target) scrollRef.current?.scrollTo({ y: scrollY.current + (y - target), animated: true });
       });
     }, 90);
@@ -154,185 +121,168 @@ export function LoginScreen() {
   };
 
   const titles: Record<Mode, { t: string; s: string }> = {
-    signin: { t: "Welcome back", s: "Sign in to your Zonal Value account to continue." },
+    signin: { t: "Welcome back", s: "Sign in to your account to continue." },
     register: { t: "Create account", s: "Join zonalvalue.ph by Filipino Homes." },
     otpEmail: { t: "Email sign-in", s: "We'll email you a 6-digit sign-in code." },
     otpCode: { t: "Check your inbox", s: `Enter the code we sent to ${otpCtx?.email || "your email"}.` },
     verify: { t: "Verify your email", s: `Enter the code we sent to ${otpCtx?.email || "your email"} to finish.` },
   };
   const isCode = mode === "otpCode" || mode === "verify";
+  const cta = mode === "signin" ? "Sign in" : mode === "register" ? "Create account" : mode === "otpEmail" ? "Send code" : "Verify & continue";
 
   return (
-    <View style={st.root}>
-      <StatusBar style="light" />
-      <Backdrop />
+    <View style={s.root}>
+      <StatusBar style={isDark ? "light" : "dark"} />
       <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
         <ScrollView
           ref={scrollRef}
-          contentContainerStyle={st.scroll}
+          contentContainerStyle={s.scroll}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
           showsVerticalScrollIndicator={false}
           onScroll={(e) => { scrollY.current = e.nativeEvent.contentOffset.y; }}
           scrollEventThrottle={16}
         >
+          {/* brand */}
+          <View style={s.hero}>
+            <Logo size={52} />
+            <Text style={s.brandWord}>zonalvalue<Text style={{ color: c.gold }}>.</Text>ph</Text>
+            <Text style={s.tagline}>Property due-diligence, precisely mapped.</Text>
+          </View>
 
-            {/* hero */}
-            <View style={st.hero}>
-              <Logo size={58} />
-              <Text style={st.brandWord}>zonalvalue<Text style={{ color: Z.goldLite }}>.</Text>ph</Text>
-              <Text style={st.tagline}>Property due-diligence, <Text style={{ color: Z.goldLite, fontStyle: "italic" }}>precisely mapped.</Text></Text>
-            </View>
+          {/* heading */}
+          <Text style={s.title}>{titles[mode].t}</Text>
+          <Text style={s.subtitle}>{titles[mode].s}</Text>
 
-            <View style={st.card}>
-              <View style={st.accent} />
+          {!!err && (
+            <View style={s.err}><Ionicons name="alert-circle" size={15} color={c.red} /><Text style={s.errT}>{err}</Text></View>
+          )}
 
-              <View style={st.badge}>
-                <View style={st.badgeDot} />
-                <Text style={st.badgeT}>SECURE ACCESS</Text>
+          {mode === "register" && (
+            <View style={s.rowGap}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.lbl}>First name</Text>
+                <Field value={firstName} onChangeText={setFirstName} placeholder="Juan" icon="person-outline" onFocusScroll={ensureVisible} />
               </View>
-
-              <Text style={st.title}>{titles[mode].t}</Text>
-              <View style={st.divider} />
-              <Text style={st.subtitle}>{titles[mode].s}</Text>
-
-              {!!err && (
-                <View style={st.err}><View style={st.errDot} /><Text style={st.errT}>{err}</Text></View>
-              )}
-
-              {mode === "register" && (
-                <View style={st.rowGap}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={st.lbl}>First name</Text>
-                    <Field value={firstName} onChangeText={setFirstName} placeholder="Juan" icon="person-outline" onFocusScroll={ensureVisible} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={st.lbl}>Last name</Text>
-                    <Field value={lastName} onChangeText={setLastName} placeholder="Dela Cruz" icon="person-outline" onFocusScroll={ensureVisible} />
-                  </View>
-                </View>
-              )}
-              {mode === "register" && (
-                <>
-                  <Text style={st.lbl}>Phone (optional)</Text>
-                  <Field value={phone} onChangeText={setPhone} placeholder="+63 9XX XXX XXXX" icon="call-outline" keyboardType="phone-pad" onFocusScroll={ensureVisible} />
-                </>
-              )}
-
-              {isCode ? (
-                <>
-                  <Text style={st.lbl}>6-digit code</Text>
-                  <TextInput
-                    ref={codeRef}
-                    value={code} onChangeText={(t) => setCode(t.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="••••••" placeholderTextColor="rgba(255,255,255,0.22)"
-                    style={st.codeInput} keyboardType="number-pad" maxLength={6} autoFocus
-                    onFocus={() => ensureVisible(codeRef)}
-                  />
-                </>
-              ) : (
-                <>
-                  <Text style={st.lbl}>Email address</Text>
-                  <Field value={email} onChangeText={setEmail} placeholder="you@email.com" icon="mail-outline" keyboardType="email-address" autoCapitalize="none" onFocusScroll={ensureVisible} />
-                  {mode !== "otpEmail" && (
-                    <>
-                      <Text style={st.lbl}>Password</Text>
-                      <Field value={password} onChangeText={setPassword} placeholder="Enter your password" icon="lock-closed-outline" secureTextEntry onFocusScroll={ensureVisible} />
-                    </>
-                  )}
-                  {mode === "register" && (
-                    <>
-                      <Text style={st.lbl}>Confirm password</Text>
-                      <Field value={confirm} onChangeText={setConfirm} placeholder="Re-enter password" icon="lock-closed-outline" secureTextEntry onFocusScroll={ensureVisible} />
-                    </>
-                  )}
-                </>
-              )}
-
-              <Pressable
-                onPress={mode === "signin" ? doSignIn : mode === "register" ? doRegister : mode === "otpEmail" ? doRequestOtp : doVerify}
-                style={({ pressed }) => [st.primary, (busy || pressed) && { opacity: 0.85 }]} disabled={busy}
-              >
-                {busy ? <ActivityIndicator color="#16223a" /> : (
-                  <>
-                    <Text style={st.primaryT}>
-                      {mode === "signin" ? "Sign in" : mode === "register" ? "Create account" : mode === "otpEmail" ? "Send code" : "Verify & continue"}
-                    </Text>
-                    <Ionicons name="arrow-forward" size={17} color="#16223a" />
-                  </>
-                )}
-              </Pressable>
-
-              {mode === "signin" && (
-                <Pressable onPress={() => go("otpEmail")} style={st.linkBtn}><Text style={st.link}>Login with email code</Text></Pressable>
-              )}
-              {isCode && (
-                <View style={st.codeRow}>
-                  <Pressable onPress={doResend} disabled={busy}><Text style={st.link}>Resend code</Text></Pressable>
-                  <Pressable onPress={() => go(mode === "verify" ? "register" : "otpEmail")}><Text style={st.linkDim}>Change email</Text></Pressable>
-                </View>
-              )}
-
-              {(mode === "signin" || mode === "register" || mode === "otpEmail") && (
-                <Text style={st.foot}>
-                  {mode === "register" ? "Already have an account? " : "Don't have an account? "}
-                  <Text style={st.footLink} onPress={() => go(mode === "register" ? "signin" : "register")}>
-                    {mode === "register" ? "Sign in" : "Create one"}
-                  </Text>
-                </Text>
-              )}
+              <View style={{ flex: 1 }}>
+                <Text style={s.lbl}>Last name</Text>
+                <Field value={lastName} onChangeText={setLastName} placeholder="Dela Cruz" icon="person-outline" onFocusScroll={ensureVisible} />
+              </View>
             </View>
+          )}
+          {mode === "register" && (
+            <>
+              <Text style={s.lbl}>Phone (optional)</Text>
+              <Field value={phone} onChangeText={setPhone} placeholder="+63 9XX XXX XXXX" icon="call-outline" keyboardType="phone-pad" onFocusScroll={ensureVisible} />
+            </>
+          )}
 
-            <Text style={st.legal}>Built by Filipino Homes · Leuterio Realty</Text>
-            <Animated.View style={spacerStyle} />
-          </ScrollView>
+          {isCode ? (
+            <>
+              <Text style={s.lbl}>6-digit code</Text>
+              <TextInput
+                ref={codeRef}
+                value={code} onChangeText={(t) => setCode(t.replace(/\D/g, "").slice(0, 6))}
+                placeholder="••••••" placeholderTextColor={c.slate}
+                style={s.codeInput} keyboardType="number-pad" maxLength={6} autoFocus
+                onFocus={() => ensureVisible(codeRef)}
+              />
+            </>
+          ) : (
+            <>
+              <Text style={s.lbl}>Email address</Text>
+              <Field value={email} onChangeText={setEmail} placeholder="you@email.com" icon="mail-outline" keyboardType="email-address" autoCapitalize="none" onFocusScroll={ensureVisible} />
+              {mode !== "otpEmail" && (
+                <>
+                  <Text style={s.lbl}>Password</Text>
+                  <Field value={password} onChangeText={setPassword} placeholder="Enter your password" icon="lock-closed-outline" secureTextEntry onFocusScroll={ensureVisible} />
+                </>
+              )}
+              {mode === "register" && (
+                <>
+                  <Text style={s.lbl}>Confirm password</Text>
+                  <Field value={confirm} onChangeText={setConfirm} placeholder="Re-enter password" icon="lock-closed-outline" secureTextEntry onFocusScroll={ensureVisible} />
+                </>
+              )}
+            </>
+          )}
+
+          <Pressable
+            onPress={mode === "signin" ? doSignIn : mode === "register" ? doRegister : mode === "otpEmail" ? doRequestOtp : doVerify}
+            style={({ pressed }) => [s.primary, (busy || pressed) && { opacity: 0.9 }]} disabled={busy}
+          >
+            {busy ? <ActivityIndicator color={s.primaryT.color as string} /> : (
+              <>
+                <Text style={s.primaryT}>{cta}</Text>
+                <Ionicons name="arrow-forward" size={17} color={s.primaryT.color as string} />
+              </>
+            )}
+          </Pressable>
+
+          {mode === "signin" && (
+            <Pressable onPress={() => go("otpEmail")} style={s.linkBtn}><Text style={s.link}>Sign in with an email code</Text></Pressable>
+          )}
+          {isCode && (
+            <View style={s.codeRow}>
+              <Pressable onPress={doResend} disabled={busy}><Text style={s.link}>Resend code</Text></Pressable>
+              <Pressable onPress={() => go(mode === "verify" ? "register" : "otpEmail")}><Text style={s.linkDim}>Change email</Text></Pressable>
+            </View>
+          )}
+
+          {(mode === "signin" || mode === "register" || mode === "otpEmail") && (
+            <Text style={s.foot}>
+              {mode === "register" ? "Already have an account? " : "Don't have an account? "}
+              <Text style={s.footLink} onPress={() => go(mode === "register" ? "signin" : "register")}>
+                {mode === "register" ? "Sign in" : "Create one"}
+              </Text>
+            </Text>
+          )}
+
+          <Text style={s.legal}>Built by Filipino Homes · Leuterio Realty</Text>
+          <Animated.View style={spacerStyle} />
+        </ScrollView>
       </SafeAreaView>
     </View>
   );
 }
 
-const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0f1c3c" },
-  scroll: { flexGrow: 1, justifyContent: "center", padding: 22, paddingVertical: 34 },
+function makeStyles(c: Palette) {
+  const primaryBg = c.isDark ? c.gold : c.navy;          // gold pops on dark, navy is crisp on light
+  const primaryText = c.isDark ? "#16223a" : "#ffffff";
+  const link = c.isDark ? c.goldLite : c.navy;
+  const fieldBg = c.isDark ? c.field : "#ffffff";
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.paper },
+    scroll: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 26, paddingVertical: 36, maxWidth: 460, width: "100%", alignSelf: "center" },
 
-  hero: { alignItems: "center", marginBottom: 22 },
-  logo: { width: 48, height: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: Z.goldLite, shadowColor: Z.gold, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 8 }, elevation: 8 },
-  logoT: { color: "#16223a", fontWeight: "800", fontSize: 24, fontFamily: SERIF },
-  brandWord: { color: "#fff", fontSize: 22, fontWeight: "700", letterSpacing: -0.4, marginTop: 12 },
-  tagline: { color: MUTED, fontSize: 13, marginTop: 6, fontFamily: SERIF },
+    hero: { alignItems: "center", marginBottom: 30 },
+    brandWord: { color: c.ink, fontSize: 21, fontWeight: "800", letterSpacing: -0.4, marginTop: 14 },
+    tagline: { color: c.slate, fontSize: 12.5, marginTop: 6 },
 
-  card: { borderRadius: 22, padding: 22, paddingTop: 24, backgroundColor: "rgba(17,28,52,0.86)", borderWidth: 1, borderColor: "rgba(201,168,76,0.18)", overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.4, shadowRadius: 30, shadowOffset: { width: 0, height: 18 }, elevation: 14 },
-  accent: { position: "absolute", top: 0, left: 0, right: 0, height: 3, backgroundColor: Z.gold },
+    title: { fontFamily: SERIF, fontSize: 28, fontWeight: "700", color: c.ink, letterSpacing: -0.3 },
+    subtitle: { fontSize: 13.5, color: c.slate, lineHeight: 20, marginTop: 6, marginBottom: 8 },
 
-  badge: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "rgba(201,168,76,0.1)", borderWidth: 1, borderColor: "rgba(201,168,76,0.3)", borderRadius: 100, paddingHorizontal: 11, paddingVertical: 5, marginBottom: 14 },
-  badgeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Z.goldLite },
-  badgeT: { color: Z.goldLite, fontSize: 9.5, fontWeight: "800", letterSpacing: 1.6 },
+    err: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: c.isDark ? "rgba(240,82,74,0.12)" : "#fdecec", borderWidth: 1, borderColor: c.isDark ? "rgba(240,82,74,0.32)" : "#f6c9c9", borderRadius: 11, paddingHorizontal: 12, paddingVertical: 10, marginTop: 14 },
+    errT: { color: c.red, fontSize: 12.5, fontWeight: "600", flex: 1 },
 
-  title: { fontFamily: SERIF, fontSize: 29, fontWeight: "700", color: "#fff", lineHeight: 33 },
-  divider: { width: 44, height: 3, borderRadius: 2, backgroundColor: Z.gold, marginTop: 10, marginBottom: 12 },
-  subtitle: { fontSize: 13.5, color: MUTED, lineHeight: 20, marginBottom: 18 },
+    rowGap: { flexDirection: "row", gap: 10 },
+    lbl: { fontSize: 10.5, fontWeight: "800", color: c.slate, letterSpacing: 0.8, textTransform: "uppercase", marginTop: 16, marginBottom: 7 },
+    field: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: fieldBg, borderWidth: 1, borderColor: c.line, borderRadius: 12, paddingHorizontal: 13, paddingVertical: Platform.OS === "ios" ? 14 : 10 },
+    fieldFocus: { borderColor: c.gold, borderWidth: 1.5 },
+    fieldInput: { flex: 1, color: c.ink, fontSize: 15, padding: 0 },
+    codeInput: { backgroundColor: fieldBg, borderWidth: 1, borderColor: c.line, borderRadius: 12, color: c.ink, fontSize: 26, fontWeight: "800", textAlign: "center", letterSpacing: 10, paddingVertical: 15, marginTop: 2 },
 
-  err: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(220,38,38,0.12)", borderWidth: 1, borderColor: "rgba(220,38,38,0.3)", borderRadius: 12, padding: 11, marginBottom: 14 },
-  errDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Z.red },
-  errT: { color: "#fca5a5", fontSize: 12.5, fontWeight: "600", flex: 1 },
+    primary: { marginTop: 26, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: primaryBg, borderRadius: 12, paddingVertical: 16, shadowColor: c.shadow, shadowOpacity: 0.2, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 5 },
+    primaryT: { color: primaryText, fontWeight: "800", fontSize: 15 },
 
-  rowGap: { flexDirection: "row", gap: 10 },
-  lbl: { fontSize: 10.5, fontWeight: "700", color: "rgba(255,255,255,0.82)", letterSpacing: 0.5, textTransform: "uppercase", marginTop: 12, marginBottom: 7 },
-  field: { flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: FIELD, borderWidth: 1, borderColor: FIELD_BORDER, borderRadius: 13, paddingHorizontal: 13, paddingVertical: Platform.OS === "ios" ? 13 : 9 },
-  fieldFocus: { borderColor: Z.gold, backgroundColor: "#1a2950" },
-  fieldInput: { flex: 1, color: "#fff", fontSize: 14.5, padding: 0 },
-  codeInput: { backgroundColor: FIELD, borderWidth: 1, borderColor: FIELD_BORDER, borderRadius: 14, color: "#fff", fontSize: 26, fontWeight: "800", textAlign: "center", letterSpacing: 10, paddingVertical: 14, marginTop: 2 },
+    linkBtn: { alignSelf: "center", paddingVertical: 16 },
+    link: { color: link, fontWeight: "700", fontSize: 13.5 },
+    linkDim: { color: c.slate, fontWeight: "600", fontSize: 13.5 },
+    codeRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 18 },
 
-  primary: { marginTop: 22, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: Z.gold, borderRadius: 13, paddingVertical: 15, shadowColor: Z.goldDeep, shadowOpacity: 0.6, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 8 },
-  primaryT: { color: "#16223a", fontWeight: "800", fontSize: 15 },
+    foot: { textAlign: "center", color: c.slate, fontSize: 13, marginTop: 18 },
+    footLink: { color: link, fontWeight: "800" },
 
-  linkBtn: { alignSelf: "center", paddingVertical: 14 },
-  link: { color: Z.goldLite, fontWeight: "700", fontSize: 13 },
-  linkDim: { color: MUTED, fontWeight: "600", fontSize: 13 },
-  codeRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 16 },
-
-  foot: { textAlign: "center", color: MUTED, fontSize: 13, marginTop: 16 },
-  footLink: { color: Z.goldLite, fontWeight: "700" },
-
-  legal: { textAlign: "center", color: "rgba(255,255,255,0.35)", fontSize: 10.5, marginTop: 22, letterSpacing: 0.4 },
-});
+    legal: { textAlign: "center", color: c.slate, opacity: 0.7, fontSize: 10.5, marginTop: 26, letterSpacing: 0.4 },
+  });
+}
