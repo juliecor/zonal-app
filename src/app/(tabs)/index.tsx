@@ -12,7 +12,7 @@ import { router } from "expo-router";
 import { mapHtml } from "@/lib/mapHtml";
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
 import {
-  nearestValue, placeDetails, placesAutocomplete, resolveDomain, scanArea,
+  nearestValue, placeDetails, placesAutocomplete, preciseAddress, resolveDomain, scanArea,
   type Suggestion, type ZPoint,
 } from "@/lib/api";
 import { buildLandUse, landUseFromClasses, type Group, type LandUse } from "@/lib/landuse";
@@ -128,7 +128,9 @@ export default function MapScreen() {
 
       const name = presetName
         || (scanPt?.street ? titleCase(scanPt.street) : near?.street ? titleCase(near.street) : near?.label || "Selected location");
-      const addr = [titleCase(scanPt?.barangay || near?.barangay || ""), titleCase(scanPt?.city || near?.city || "")]
+      // Real barangay/city of the tapped point (geographic) — fixes wrong labels near boundaries.
+      const pa = await preciseAddress(lat, lon, { barangay: scanPt?.barangay || near?.barangay, city: scanPt?.city || near?.city });
+      const addr = [titleCase(pa.barangay || ""), titleCase(pa.city || "")]
         .filter(Boolean).join(" · ") || "Selected spot";
 
       const nearby = (near?.nearby || []).filter((p) => Number(p.value_per_sqm) > 0)

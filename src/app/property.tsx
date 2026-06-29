@@ -13,7 +13,7 @@ import { ParcelCard } from "@/components/ParcelCard";
 import { CostsCard } from "@/components/CostsCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
-import { nearestValue, resolveDomain, scanArea, type ZPoint } from "@/lib/api";
+import { nearestValue, preciseAddress, resolveDomain, scanArea, type ZPoint } from "@/lib/api";
 import { buildLandUse, GROUP_LABEL, landUseFromClasses, type Group, type LandUse } from "@/lib/landuse";
 import { titleCase } from "@/theme/zonal";
 import { useTheme, type Palette } from "@/theme/theme";
@@ -59,7 +59,8 @@ export default function PropertyScreen() {
       const code = scanPt?.classification_code ?? defOpt?.code ?? v?.classification_code ?? null;
       const name = params.name
         || (scanPt?.street ? titleCase(scanPt.street) : v?.street ? titleCase(v.street) : v?.label || "Property");
-      const addr = [titleCase(scanPt?.barangay || v?.barangay || ""), titleCase(scanPt?.city || v?.city || "")].filter(Boolean).join(" · ");
+      const pa = await preciseAddress(lat, lon, { barangay: scanPt?.barangay || v?.barangay, city: scanPt?.city || v?.city });
+      const addr = [titleCase(pa.barangay || ""), titleCase(pa.city || "")].filter(Boolean).join(" · ");
 
       setOptions(opts);
       setSel(defGroup);

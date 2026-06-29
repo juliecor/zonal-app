@@ -10,7 +10,7 @@ import { router, useLocalSearchParams } from "expo-router";
 
 import { useAuth } from "@/lib/auth";
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
-import { nearestValue, resolveDomain, scanArea } from "@/lib/api";
+import { nearestValue, preciseAddress, resolveDomain, scanArea } from "@/lib/api";
 import { buildReportHtml } from "@/lib/reportHtml";
 import { peso, titleCase } from "@/theme/zonal";
 import { useTheme, type Palette } from "@/theme/theme";
@@ -76,9 +76,11 @@ export default function ReportScreen() {
       const value = scanPt?.value_per_sqm
         ?? scan?.classes?.find((c) => c.group === scan.defaultGroup)?.value
         ?? v?.value_per_sqm ?? null;
+      const pa = await preciseAddress(lat, lon, { barangay: scanPt?.barangay || v?.barangay, city: scanPt?.city || v?.city });
+      if (!alive) return;
       setInfo({
         name: params.name || (scanPt?.street ? titleCase(scanPt.street) : v?.street ? titleCase(v.street) : "Property"),
-        city: [titleCase(scanPt?.barangay || v?.barangay || ""), titleCase(scanPt?.city || v?.city || "")].filter(Boolean).join(", ") || "Philippines",
+        city: [titleCase(pa.barangay || ""), titleCase(pa.city || "")].filter(Boolean).join(", ") || "Philippines",
         value,
         code: scanPt?.classification_code || v?.classification_code || "",
       });

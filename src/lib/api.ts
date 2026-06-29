@@ -234,24 +234,47 @@ export async function citySearch(q: string): Promise<CityMatch[]> {
 
 const domainCache = new Map<string, string>();
 
-export async function reverseGeocode(lat: number, lon: number): Promise<{ city?: string; province?: string }> {
+export async function reverseGeocode(lat: number, lon: number): Promise<{ city?: string; province?: string; barangay?: string }> {
   if (!MAPS_KEY) return {};
   try {
     const r = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&region=ph&key=${MAPS_KEY}`);
     const j = await r.json();
-    const comps: any[] = j?.results?.[0]?.address_components || [];
+    // Scan all results' components — the barangay may only appear in a less-specific result.
+    const results: any[] = Array.isArray(j?.results) ? j.results : [];
     let city: string | undefined;
     let province: string | undefined;
-    for (const c of comps) {
-      const t: string[] = c.types || [];
-      if (t.includes("locality")) city = c.long_name;
-      else if (!city && t.includes("administrative_area_level_3")) city = c.long_name;
-      if (t.includes("administrative_area_level_2")) province = c.long_name;
+    let barangay: string | undefined;
+    for (const res of results) {
+      for (const c of (res.address_components || [])) {
+        const t: string[] = c.types || [];
+        if (!city && t.includes("locality")) city = c.long_name;
+        if (!province && t.includes("administrative_area_level_2")) province = c.long_name;
+        // PH barangays surface as these (varies by area).
+        if (!barangay && (t.includes("sublocality_level_1") || t.includes("administrative_area_level_4") || t.includes("administrative_area_level_5") || t.includes("neighborhood") || t.includes("sublocality"))) barangay = c.long_name;
+      }
+      if (city && barangay && province) break;
     }
-    return { city, province };
+    if (!city) { // some municipalities only report admin_area_level_3
+      for (const res of results) for (const c of (res.address_components || [])) {
+        if ((c.types || []).includes("administrative_area_level_3")) { city = c.long_name; break; }
+      }
+    }
+    return { city, province, barangay };
   } catch {
     return {};
   }
+}
+
+/** The real-world barangay + city of a tapped point (geographic), with the nearest BIR
+ *  record's values as fallback. Fixes wrong labels near city/barangay boundaries. */
+export async function preciseAddress(
+  lat: number, lon: number, fb: { barangay?: string | null; city?: string | null } = {},
+): Promise<{ barangay?: string; city?: string }> {
+  const geo = await reverseGeocode(lat, lon).catch(() => ({} as { city?: string; barangay?: string }));
+  return {
+    barangay: geo.barangay || fb.barangay || undefined,
+    city: geo.city || fb.city || undefined,
+  };
 }
 
 /** Resolve the zonalvalue.com province subdomain for a lat/lon, cached per ~1km cell.

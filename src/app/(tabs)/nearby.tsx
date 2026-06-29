@@ -12,7 +12,7 @@ import { ParcelCard } from "@/components/ParcelCard";
 import { SectionHeader } from "@/components/SectionHeader";
 import { ClassChip } from "@/components/ClassChip";
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
-import { nearestValue, resolveDomain, scanArea, type ZPoint } from "@/lib/api";
+import { nearestValue, preciseAddress, resolveDomain, scanArea, type ZPoint } from "@/lib/api";
 import { useTheme, type Palette } from "@/theme/theme";
 import { SERIF, titleCase } from "@/theme/zonal";
 
@@ -54,7 +54,8 @@ export default function NearbyScreen() {
         ?? near?.value_per_sqm ?? null;
       const code = scanPt?.classification_code ?? near?.classification_code ?? null;
       const name = scanPt?.street ? titleCase(scanPt.street) : near?.street ? titleCase(near.street) : "Your location";
-      const addr = [titleCase(scanPt?.barangay || near?.barangay || ""), titleCase(scanPt?.city || near?.city || "")].filter(Boolean).join(" · ") || "Current location";
+      const pa = await preciseAddress(lat, lon, { barangay: scanPt?.barangay || near?.barangay, city: scanPt?.city || near?.city });
+      const addr = [titleCase(pa.barangay || ""), titleCase(pa.city || "")].filter(Boolean).join(" · ") || "Current location";
 
       setInfo({ lat, lon, value, code, name, addr });
       setNearby((near?.nearby || []).filter((p) => Number(p.value_per_sqm) > 0).sort((a, b) => (a.distance_m ?? 9e9) - (b.distance_m ?? 9e9)).slice(0, 6));
