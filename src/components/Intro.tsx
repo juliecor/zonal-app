@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import Svg, { Defs, G, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
 import Animated, {
-  Easing, runOnJS, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withTiming,
+  Easing, interpolateColor, runOnJS, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withTiming,
 } from "react-native-reanimated";
 
 import { Logo } from "@/components/Logo";
 import { PH_PATH, PH_RATIO, PH_TRANSFORM, PH_VIEWBOX } from "@/lib/phMap";
+import { useTheme } from "@/theme/theme";
 import { SERIF, Z } from "@/theme/zonal";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -15,6 +16,8 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 // so the coastline draws fully. strokeDasharray lives in the path's own coords —
 // i.e. BEFORE the <G scale(0.1)> — so it must be in potrace units, not viewBox px.
 const INK_LEN = 84000;
+// The intro's base navy — at the end it morphs to the app/login background for a seamless handoff.
+const INTRO_BG = "#244088";
 
 // Value pins as fractions of the (tight) map box (fx → right, fy → down). Positions
 // were derived from the real geometry so each sits on land, spread across the country.
@@ -52,6 +55,7 @@ function Pin({ label, left, top, delay }: { label: string; left: number; top: nu
 
 export function Intro({ onDone }: { onDone: () => void }) {
   const { width, height } = useWindowDimensions();
+  const { c } = useTheme();
   const mapW = Math.min(width * 0.82, 360);
   const mapH = mapW * PH_RATIO;
 
@@ -61,7 +65,8 @@ export function Intro({ onDone }: { onDone: () => void }) {
   const ink = useSharedValue(INK_LEN);   // strokeDashoffset → 0 draws the coastline
   const fill = useSharedValue(0);         // gold fill fades in behind the ink
   const brandO = useSharedValue(0), brandY = useSharedValue(16);
-  const root = useSharedValue(1);
+  const content = useSharedValue(1);      // map + brand fade out at the end
+  const bg = useSharedValue(0);            // 0→1 morphs the navy background into the app/login bg
   const [k, setK] = useState<number | null>(null); // motion factor (reduce-motion → 0.5); gates the pins
 
   const finished = useRef(false);
@@ -82,7 +87,10 @@ export function Intro({ onDone }: { onDone: () => void }) {
       mapTilt.value = withDelay(220 * kk, withTiming(6, { duration: 2700 * kk, easing: E }));
       brandO.value = withDelay(2800 * kk, withTiming(1, { duration: 650 }));
       brandY.value = withDelay(2800 * kk, withTiming(0, { duration: 650, easing: E }));
-      root.value = withDelay(4650 * kk, withTiming(0, { duration: 520 }, (fin) => { if (fin) runOnJS(finish)(); }));
+      // Hand off to the app: fade the cinematic out while the navy background morphs into
+      // the login/app background — so it dissolves straight into the next screen (no white flash).
+      bg.value = withDelay(4650 * kk, withTiming(1, { duration: 650, easing: Easing.inOut(Easing.quad) }));
+      content.value = withDelay(4750 * kk, withTiming(0, { duration: 560 }, (fin) => { if (fin) runOnJS(finish)(); }));
     };
 
     AccessibilityInfo.isReduceMotionEnabled()
@@ -93,7 +101,8 @@ export function Intro({ onDone }: { onDone: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const rootStyle = useAnimatedStyle(() => ({ opacity: root.value }));
+  const rootBgStyle = useAnimatedStyle(() => ({ backgroundColor: interpolateColor(bg.value, [0, 1], [INTRO_BG, c.paper]) }));
+  const contentStyle = useAnimatedStyle(() => ({ opacity: content.value }));
   const mapStyle = useAnimatedStyle(() => ({
     opacity: mapOpacity.value,
     transform: [{ perspective: 720 }, { rotateX: `${mapTilt.value}deg` }, { scale: mapScale.value }],
@@ -102,25 +111,19 @@ export function Intro({ onDone }: { onDone: () => void }) {
   const fillProps = useAnimatedProps(() => ({ fillOpacity: fill.value }));
   const brandStyle = useAnimatedStyle(() => ({ opacity: brandO.value, transform: [{ translateY: brandY.value }] }));
 
-  const step = 34;
-  const vLines: number[] = []; const hLines: number[] = [];
-  for (let x = step; x < width; x += step) vLines.push(x);
-  for (let y = step; y < height; y += step) hLines.push(y);
-
   return (
-    <Animated.View style={[styles.root, rootStyle]}>
+    <Animated.View style={[styles.root, rootBgStyle]}>
+      <Animated.View style={[StyleSheet.absoluteFill, styles.fill, contentStyle]}>
       <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
         <Defs>
           <LinearGradient id="introbg" x1="0" y1="0" x2="0.3" y2="1">
-            <Stop offset="0" stopColor="#1d3066" /><Stop offset="0.55" stopColor="#16264f" /><Stop offset="1" stopColor="#0f1c3c" />
+            <Stop offset="0" stopColor="#2e4f9c" /><Stop offset="0.55" stopColor="#244088" /><Stop offset="1" stopColor="#1d3470" />
           </LinearGradient>
           <RadialGradient id="introglow" cx="50%" cy="45%" r="55%">
-            <Stop offset="0" stopColor="#d9b85a" stopOpacity="0.34" /><Stop offset="0.6" stopColor="#c9a84c" stopOpacity="0.1" /><Stop offset="1" stopColor="#c9a84c" stopOpacity="0" />
+            <Stop offset="0" stopColor="#e6cf86" stopOpacity="0.30" /><Stop offset="0.6" stopColor="#d9b85a" stopOpacity="0.09" /><Stop offset="1" stopColor="#c9a84c" stopOpacity="0" />
           </RadialGradient>
         </Defs>
         <Rect x="0" y="0" width={width} height={height} fill="url(#introbg)" />
-        {vLines.map((x) => <Path key={`v${x}`} d={`M${x} 0 V${height}`} stroke="rgba(255,255,255,0.03)" strokeWidth={1} />)}
-        {hLines.map((y) => <Path key={`h${y}`} d={`M0 ${y} H${width}`} stroke="rgba(255,255,255,0.03)" strokeWidth={1} />)}
         <Rect x="0" y="0" width={width} height={height} fill="url(#introglow)" />
       </Svg>
 
@@ -164,6 +167,7 @@ export function Intro({ onDone }: { onDone: () => void }) {
         <Text style={styles.word}>zonalvalue<Text style={{ color: Z.goldLite }}>.</Text>ph</Text>
         <Text style={styles.by}>BY FILIPINO HOMES</Text>
       </Animated.View>
+      </Animated.View>
 
       <Pressable style={StyleSheet.absoluteFill} onPress={finish} />
     </Animated.View>
@@ -171,7 +175,8 @@ export function Intro({ onDone }: { onDone: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  root: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#0f1c3c", alignItems: "center", justifyContent: "center" },
+  root: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: INTRO_BG, alignItems: "center", justifyContent: "center" },
+  fill: { alignItems: "center", justifyContent: "center" },
   center: { alignItems: "center", justifyContent: "center" },
   pinWrap: { position: "absolute", width: 84, alignItems: "center" },
   pinCard: {

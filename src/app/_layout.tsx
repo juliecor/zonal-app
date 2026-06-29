@@ -22,10 +22,10 @@ function Gate({ children }: { children: ReactNode }) {
 
   if (loading) {
     return (
-      <View style={[g.splash, { backgroundColor: c.isDark ? c.paper : "#0f1c3c" }]}>
-        <StatusBar style="light" />
+      <View style={[g.splash, { backgroundColor: c.paper }]}>
+        <StatusBar style={c.isDark ? "light" : "dark"} />
         <Logo size={70} />
-        <Text style={g.brand}>zonalvalue.ph</Text>
+        <Text style={[g.brand, { color: c.ink }]}>zonalvalue.ph</Text>
         <ActivityIndicator color={c.gold} style={{ marginTop: 18 }} />
       </View>
     );
