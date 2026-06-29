@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import * as LocalAuthentication from "expo-local-authentication";
 import { Image } from "expo-image";
@@ -54,8 +54,12 @@ export default function ProfileScreen() {
           LocalAuthentication.supportedAuthenticationTypesAsync(),
         ]);
         setBioSupported(hw && enrolled);
-        if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) setBioLabel("Face ID");
-        else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) setBioLabel("Fingerprint");
+        const hasFace = types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION);
+        const hasFinger = types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT);
+        // Android exposes fingerprint as the secure app biometric (face unlock is usually
+        // "weak" and unavailable to apps), so prefer "Fingerprint" there.
+        if (Platform.OS === "ios") setBioLabel(hasFace ? "Face ID" : hasFinger ? "Touch ID" : "Biometric");
+        else setBioLabel(hasFinger ? "Fingerprint" : hasFace ? "Face unlock" : "Biometric");
       } catch { /* ignore */ }
     })();
   }, []);
