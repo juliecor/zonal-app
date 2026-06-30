@@ -178,21 +178,21 @@ export default function AssistantScreen() {
       const target = targetRef.current;
       if (shownLenRef.current < target.length) {
         const backlog = target.length - shownLenRef.current;
-        const step = Math.max(1, Math.min(5, Math.ceil(backlog / 16)));
+        const step = Math.max(1, Math.min(3, Math.ceil(backlog / 22)));
         shownLenRef.current = Math.min(target.length, shownLenRef.current + step);
         const text = target.slice(0, shownLenRef.current);
         setMessages((m) => { if (!m.length) return m; const c = m.slice(); c[c.length - 1] = { role: "assistant", content: text }; return c; });
         scrollEnd(false);
       }
       if (shownLenRef.current < targetRef.current.length || !doneRef.current) {
-        typeTimer.current = setTimeout(tick, 24);
+        typeTimer.current = setTimeout(tick, 30);
       } else {
         typeTimer.current = null;
         fullRef.current = "";
         setTyping(false);
       }
     };
-    typeTimer.current = setTimeout(tick, 24);
+    typeTimer.current = setTimeout(tick, 30);
   }
 
   async function send(text: string) {
