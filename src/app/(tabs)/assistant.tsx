@@ -105,6 +105,9 @@ export default function AssistantScreen() {
   const [lang, setLang] = useState("English");
   const typeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fullRef = useRef("");                      // the full reply currently being typed
+  const targetRef = useRef("");                    // streamed text received so far
+  const shownLenRef = useRef(0);                   // how much of it is revealed
+  const doneRef = useRef(false);                   // stream finished?
 
   // Remember the agent's preferred reply language.
   useEffect(() => { SecureStore.getItemAsync(LANG_KEY).then((v) => { if (v) setLang(v); }).catch(() => {}); }, []);
@@ -166,6 +169,32 @@ export default function AssistantScreen() {
     });
   }
 
+  // Smooth typewriter that FOLLOWS the incoming stream: reveals up to whatever has arrived
+  // so far, catching up a little when it's behind — so it types nicely instead of dumping
+  // each chunk, while still starting in ~1s.
+  function startDrain() {
+    if (typeTimer.current) return;
+    const tick = () => {
+      const target = targetRef.current;
+      if (shownLenRef.current < target.length) {
+        const backlog = target.length - shownLenRef.current;
+        const step = Math.max(2, Math.min(10, Math.ceil(backlog / 10)));
+        shownLenRef.current = Math.min(target.length, shownLenRef.current + step);
+        const text = target.slice(0, shownLenRef.current);
+        setMessages((m) => { if (!m.length) return m; const c = m.slice(); c[c.length - 1] = { role: "assistant", content: text }; return c; });
+        scrollEnd(false);
+      }
+      if (shownLenRef.current < targetRef.current.length || !doneRef.current) {
+        typeTimer.current = setTimeout(tick, 16);
+      } else {
+        typeTimer.current = null;
+        fullRef.current = "";
+        setTyping(false);
+      }
+    };
+    typeTimer.current = setTimeout(tick, 16);
+  }
+
   async function send(text: string) {
     const q = text.trim();
     if (!q || loading || typing) return;
@@ -184,26 +213,35 @@ export default function AssistantScreen() {
     if (COST_INTENT.test(q)) apiQuestion += ctxCostReference(ctxObj);
     apiQuestion += langDirective(lang);
 
-    // Show the reply LIVE as the AI writes it (the server streams token-by-token).
+    // Stream the reply, but reveal it with a smooth typewriter that follows the tokens.
+    targetRef.current = ""; shownLenRef.current = 0; doneRef.current = false;
     let added = false;
     const showChunk = (full: string) => {
-      if (!full) return;
-      if (!added) { added = true; setLoading(false); setTyping(true); setMessages((m) => [...m, { role: "assistant", content: full }]); }
-      else setMessages((m) => { const c = m.slice(); c[c.length - 1] = { role: "assistant", content: full }; return c; });
-      scrollEnd(false);
+      targetRef.current = full;
+      fullRef.current = full;
+      if (!added) {
+        added = true;
+        setLoading(false); setTyping(true);
+        setMessages((m) => [...m, { role: "assistant", content: "" }]);
+        startDrain();
+      }
     };
 
     try {
       const { answer } = await askAssistantStream(apiQuestion, { domain, history, context: ctxObj, token }, showChunk);
       if (!added) {
+        // nothing streamed — reveal the final answer with the typewriter
         setLoading(false);
-        setMessages((m) => [...m, { role: "assistant", content: answer || "Sorry, I couldn't reach the data just now. Please try again." }]);
-      } else if (answer) {
-        setMessages((m) => { const c = m.slice(); c[c.length - 1] = { role: "assistant", content: answer }; return c; });
+        setMessages((m) => [...m, { role: "assistant", content: "" }]);
+        setTyping(true);
+        targetRef.current = answer || "Sorry, I couldn't reach the data just now. Please try again.";
+        shownLenRef.current = 0; doneRef.current = true; startDrain();
+      } else {
+        if (answer) targetRef.current = answer;   // final (trimmed) text
+        doneRef.current = true;                   // let the drain finish typing, then stop
       }
-      setTyping(false);
     } catch {
-      if (added) { setTyping(false); return; } // had partial streamed text — keep it
+      if (added) { doneRef.current = true; return; } // keep the partial streamed text; drain ends it
       // Streaming unavailable → fall back to the non-streaming request + typewriter.
       try {
         const { answer } = await askAssistant(apiQuestion, { domain, history, context: ctxObj, token });
