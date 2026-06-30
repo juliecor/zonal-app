@@ -17,6 +17,9 @@ import {
 } from "@/lib/api";
 import { buildLandUse, landUseFromClasses, type Group, type LandUse } from "@/lib/landuse";
 import { useAuth } from "@/lib/auth";
+import { savedStore } from "@/lib/saved";
+import { recentsStore, type Recent } from "@/lib/recents";
+import { useStore } from "@/lib/store";
 import { ClassChip } from "@/components/ClassChip";
 import { HazardChips } from "@/components/HazardChips";
 import { LandUseToggle } from "@/components/LandUseToggle";
@@ -62,6 +65,9 @@ export default function MapScreen() {
   const [lu, setLu] = useState<Group>("residential");
   const [haz, setHaz] = useState<HazardProfile | null>(null);
   const [busy, setBusy] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const saved = useStore(savedStore);
+  const recents = useStore(recentsStore);
 
   const center = useRef({ lat: 10.3157, lon: 123.8854 });
   const pinsRef = useRef<any[]>([]);
@@ -145,6 +151,7 @@ export default function MapScreen() {
       pushPins();
 
       showSheet({ lat, lon, name, address: addr, value, code, options, nearby: nearby.slice(0, 3) }, defaultGroup);
+      recentsStore.add({ lat, lon, name, value, code, ts: Date.now() });
     } finally {
       setBusy(false);
     }
@@ -210,9 +217,21 @@ export default function MapScreen() {
     router.push({ pathname: "/property", params: { lat: String(sheet.lat), lon: String(sheet.lon), name: sheet.name } } as any);
   }
 
+  function openRecent(r: Recent) {
+    setFocused(false);
+    Keyboard.dismiss();
+    inject(`window.ZV.center(${r.lat},${r.lon},17)`);
+    inspect(r.lat, r.lon, r.name);
+  }
+
   const selOpt = sheet?.options.find((o) => o.group === lu);
   const shownValue = selOpt ? selOpt.value : sheet?.value ?? null;
   const shownCode = selOpt ? selOpt.code : sheet?.code ?? null;
+  const sheetSaved = !!sheet && saved.some((l) => Math.abs(l.lat - sheet.lat) < 1e-5 && Math.abs(l.lon - sheet.lon) < 1e-5);
+  function toggleSaveSheet() {
+    if (!sheet) return;
+    savedStore.toggle({ lat: sheet.lat, lon: sheet.lon, name: sheet.name, address: sheet.address, value: shownValue, code: shownCode, ts: Date.now() });
+  }
 
   return (
     <View style={st.root}>
@@ -235,6 +254,8 @@ export default function MapScreen() {
               value={q} onChangeText={onChangeQ}
               placeholder="Search any address…" placeholderTextColor={c.slate}
               style={st.searchInput} returnKeyType="search" autoCorrect={false}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setTimeout(() => setFocused(false), 150)}
             />
             {q.length > 0 && (
               <Pressable onPress={() => { setQ(""); setSugs([]); }} hitSlop={8}>
@@ -242,6 +263,10 @@ export default function MapScreen() {
               </Pressable>
             )}
           </View>
+          <Pressable style={st.iconBtn} onPress={() => router.push("/saved" as any)}>
+            <Ionicons name="bookmark" size={17} color={chrome} />
+            {saved.length > 0 && <View style={st.badge}><Text style={st.badgeT}>{saved.length}</Text></View>}
+          </Pressable>
           <Pressable style={st.ava} onPress={() => router.push("/profile" as any)}>
             {user?.avatar_url ? (
               <Image source={{ uri: user.avatar_url }} style={st.avaImg} contentFit="cover" />
@@ -259,6 +284,21 @@ export default function MapScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={st.sugMain} numberOfLines={1}>{s.main}</Text>
                   <Text style={st.sugSec} numberOfLines={1}>{s.secondary}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {focused && q.trim().length < 2 && sugs.length === 0 && recents.length > 0 && (
+          <View style={st.sugs}>
+            <Text style={st.recH}>RECENT</Text>
+            {recents.map((r, i) => (
+              <Pressable key={i} style={st.sug} onPress={() => openRecent(r)}>
+                <Ionicons name="time-outline" size={15} color={c.slate} />
+                <View style={{ flex: 1 }}>
+                  <Text style={st.sugMain} numberOfLines={1}>{r.name}</Text>
+                  <Text style={st.sugSec} numberOfLines={1}>{r.value != null ? `${peso(r.value)} /sqm` : "Tap to view"}</Text>
                 </View>
               </Pressable>
             ))}
@@ -321,6 +361,9 @@ export default function MapScreen() {
           <View style={st.grip} />
           <Pressable onPress={hideSheet} style={st.sheetClose} hitSlop={10}>
             <Ionicons name="close" size={18} color={c.slate} />
+          </Pressable>
+          <Pressable onPress={toggleSaveSheet} style={st.sheetHeart} hitSlop={10}>
+            <Ionicons name={sheetSaved ? "heart" : "heart-outline"} size={20} color={sheetSaved ? c.gold : c.slate} />
           </Pressable>
           <Text style={st.nm} numberOfLines={1}>{sheet.name}</Text>
           <Text style={st.ad} numberOfLines={1}>{sheet.address}</Text>
@@ -389,6 +432,14 @@ function makeStyles(c: Palette) {
     },
     avaT: { color: "#16223a", fontWeight: "800", fontSize: 12 },
     avaImg: { width: "100%", height: "100%" },
+    iconBtn: {
+      width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center",
+      backgroundColor: frost, borderWidth: 1, borderColor: "rgba(201,168,76,0.3)",
+      shadowColor: c.shadow, shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5,
+    },
+    badge: { position: "absolute", top: -3, right: -3, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: c.gold, alignItems: "center", justifyContent: "center", paddingHorizontal: 4, borderWidth: 1.5, borderColor: c.isDark ? c.card : "#fff" },
+    badgeT: { fontSize: 9.5, fontWeight: "800", color: "#16223a" },
+    recH: { fontSize: 8.5, letterSpacing: 1.2, color: c.slate, fontWeight: "800", paddingHorizontal: 14, paddingTop: 10, paddingBottom: 2 },
 
     sugs: {
       marginHorizontal: 12, marginTop: 8, backgroundColor: c.card, borderRadius: 16, overflow: "hidden",
@@ -435,6 +486,7 @@ function makeStyles(c: Palette) {
     },
     grip: { width: 36, height: 4, borderRadius: 4, backgroundColor: c.isDark ? c.line : "#dde2ec", alignSelf: "center", marginBottom: 12 },
     sheetClose: { position: "absolute", right: 14, top: 14, padding: 2 },
+    sheetHeart: { position: "absolute", right: 44, top: 13, padding: 2 },
     nm: { fontFamily: SERIF, fontSize: 18, fontWeight: "600", color: c.ink, paddingRight: 28 },
     ad: { fontSize: 11, color: c.slate, marginTop: 3 },
     vrow: { flexDirection: "row", alignItems: "flex-end", gap: 4, marginTop: 11 },

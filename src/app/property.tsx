@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,11 +18,19 @@ import { buildLandUse, GROUP_LABEL, landUseFromClasses, type Group, type LandUse
 import { titleCase } from "@/theme/zonal";
 import { useTheme, type Palette } from "@/theme/theme";
 import { useAuth } from "@/lib/auth";
+import { savedStore } from "@/lib/saved";
+import { useStore } from "@/lib/store";
+import { ShareCard } from "@/components/ShareCard";
+import { shareViewAsImage } from "@/lib/shareImage";
+
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export default function PropertyScreen() {
   const { c, isDark } = useTheme();
-  const { token } = useAuth();
+  const { user, token } = useAuth();
   const s = useMemo(() => makeStyles(c), [c]);
+  const shotRef = useRef<View>(null);
+  const saved = useStore(savedStore);
   const params = useLocalSearchParams<{ lat?: string; lon?: string; name?: string }>();
   const lat = Number(params.lat);
   const lon = Number(params.lon);
@@ -79,6 +87,17 @@ export default function PropertyScreen() {
   const name = info?.name || params.name || "Property";
   const appliesTo = info ? [info.name, GROUP_LABEL[sel]].filter(Boolean).join(" · ") : undefined;
 
+  const isSaved = saved.some((l) => Math.abs(l.lat - lat) < 1e-5 && Math.abs(l.lon - lon) < 1e-5);
+  function toggleSave() {
+    savedStore.toggle({ lat, lon, name, address: info?.addr || "", value: shownValue, code: info?.code ?? null, ts: Date.now() });
+  }
+  const preparedBy = titleCase(user?.name || [user?.first_name, user?.last_name].filter(Boolean).join(" ")) || undefined;
+  const dateStr = useMemo(() => { const d = new Date(); return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; }, []);
+  async function shareImage() {
+    const r = await shareViewAsImage(shotRef, name);
+    if (!r.ok) Alert.alert("Share as image", "This works in the installed app (not available in Expo Go).");
+  }
+
   function askAI() {
     const hz = (k: string) => haz?.hazards.find((h) => h.key === k)?.text;
     const [bgy, cty] = (info?.addr || "").split(" · ");
@@ -106,7 +125,10 @@ export default function PropertyScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
       <SafeAreaView edges={["top"]} style={{ backgroundColor: c.paper }}>
         <AppBar title={name} subtitle={info?.addr || "Establishment"} right={
-          <Pressable onPress={openReport} hitSlop={8} style={s.shareBtn}><Ionicons name="document-text-outline" size={18} color={isDark ? c.goldLite : c.navy} /></Pressable>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Pressable onPress={toggleSave} hitSlop={8} style={s.shareBtn}><Ionicons name={isSaved ? "heart" : "heart-outline"} size={18} color={isSaved ? c.gold : (isDark ? c.goldLite : c.navy)} /></Pressable>
+            <Pressable onPress={openReport} hitSlop={8} style={s.shareBtn}><Ionicons name="document-text-outline" size={18} color={isDark ? c.goldLite : c.navy} /></Pressable>
+          </View>
         } />
       </SafeAreaView>
 
@@ -145,6 +167,11 @@ export default function PropertyScreen() {
             <Text style={s.aiT}>Ask the AI about this lot</Text>
           </Pressable>
 
+          <Pressable onPress={shareImage} style={s.shareImg}>
+            <Ionicons name="share-social-outline" size={17} color={isDark ? c.goldLite : c.navy} />
+            <Text style={s.shareImgT}>Share as image</Text>
+          </Pressable>
+
           {shownValue != null && (
             <View style={{ marginTop: 18 }}>
               <CostsCard valuePerSqm={shownValue} code={info?.code} />
@@ -172,6 +199,22 @@ export default function PropertyScreen() {
           <Text style={s.note}>Geohazard overlays from PHIVOLCS &amp; Project NOAH · BIR-indexed values. For due-diligence reference.</Text>
         </ScrollView>
       )}
+
+      {/* Off-screen branded card captured to PNG for "Share as image" */}
+      <View style={s.offscreen} pointerEvents="none">
+        <ShareCard
+          ref={shotRef}
+          name={name}
+          address={info?.addr || ""}
+          value={shownValue}
+          code={info?.code ?? null}
+          hazardLabel={haz?.riskLabel ?? null}
+          hazardScore={haz?.score ?? null}
+          hazardColor={haz?.riskColor ?? null}
+          preparedBy={preparedBy}
+          dateStr={dateStr}
+        />
+      </View>
     </View>
   );
 }
@@ -191,6 +234,9 @@ function makeStyles(c: Palette) {
     ai: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.navy, borderRadius: 13, paddingVertical: 13 },
     aiSpark: { color: c.goldLite, fontSize: 14 },
     aiT: { color: "#fff", fontSize: 13, fontWeight: "700" },
+    shareImg: { marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 13, paddingVertical: 12 },
+    shareImgT: { color: c.isDark ? c.goldLite : c.navy, fontSize: 13, fontWeight: "700" },
+    offscreen: { position: "absolute", left: -10000, top: 0 },
     note: { marginTop: 18, fontSize: 10, color: c.slate, lineHeight: 15, textAlign: "center" },
   });
 }
