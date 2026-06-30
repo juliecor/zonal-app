@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -16,14 +16,20 @@ import { nearestValue, preciseAddress, resolveDomain, scanArea, type ZPoint } fr
 import { useTheme, type Palette } from "@/theme/theme";
 import { SERIF, titleCase } from "@/theme/zonal";
 import { useAuth } from "@/lib/auth";
+import { ShareCard } from "@/components/ShareCard";
+import { shareViewAsImage } from "@/lib/shareImage";
 
 interface Info { lat: number; lon: number; value: number | null; code: string | null; name: string; addr: string }
 type Phase = "idle" | "locating" | "ready" | "denied" | "error";
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export default function NearbyScreen() {
   const { c } = useTheme();
-  const { token } = useAuth();
+  const { user, token } = useAuth();
   const s = useMemo(() => makeStyles(c), [c]);
+  const shotRef = useRef<View>(null);
+  const preparedBy = titleCase(user?.name || [user?.first_name, user?.last_name].filter(Boolean).join(" ")) || undefined;
+  const dateStr = useMemo(() => { const d = new Date(); return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; }, []);
   const [phase, setPhase] = useState<Phase>("locating");
   const [info, setInfo] = useState<Info | null>(null);
   const [haz, setHaz] = useState<HazardProfile | null>(null);
@@ -86,6 +92,11 @@ export default function NearbyScreen() {
         }),
       },
     } as any);
+  }
+
+  async function shareImage() {
+    const r = await shareViewAsImage(shotRef, info?.name || "Zonal value");
+    if (!r.ok) Alert.alert("Share as image", "This works in the installed app (not available in Expo Go).");
   }
 
   return (
@@ -162,6 +173,10 @@ export default function NearbyScreen() {
           <Pressable onPress={askAI} style={s.aiFull}>
             <Text style={s.aiSpark}>✦</Text><Text style={s.aiT}>Ask the AI about this spot</Text>
           </Pressable>
+          <Pressable onPress={shareImage} style={s.shareImg}>
+            <Ionicons name="share-social-outline" size={17} color={c.isDark ? c.goldLite : c.navy} />
+            <Text style={s.shareImgT}>Share as image</Text>
+          </Pressable>
 
           {nearby.length > 0 && (
             <View style={{ marginTop: 22 }}>
@@ -182,6 +197,22 @@ export default function NearbyScreen() {
           )}
         </ScrollView>
       ) : null}
+
+      {/* Off-screen branded card captured to PNG for "Share as image" */}
+      <View style={s.offscreen} pointerEvents="none">
+        <ShareCard
+          ref={shotRef}
+          name={info?.name || "Your location"}
+          address={info?.addr || ""}
+          value={info?.value ?? null}
+          code={info?.code ?? null}
+          hazardLabel={haz?.riskLabel ?? null}
+          hazardScore={haz?.score ?? null}
+          hazardColor={haz?.riskColor ?? null}
+          preparedBy={preparedBy}
+          dateStr={dateStr}
+        />
+      </View>
     </View>
   );
 }
@@ -220,5 +251,8 @@ function makeStyles(c: Palette) {
     aiFull: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.navy, borderRadius: 13, paddingVertical: 13 },
     aiSpark: { color: c.goldLite, fontSize: 13 },
     aiT: { color: "#fff", fontSize: 13, fontWeight: "700" },
+    shareImg: { marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 13, paddingVertical: 12 },
+    shareImgT: { color: c.isDark ? c.goldLite : c.navy, fontSize: 13, fontWeight: "700" },
+    offscreen: { position: "absolute", left: -10000, top: 0 },
   });
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -14,6 +14,8 @@ import { nearestValue, preciseAddress, resolveDomain, scanArea } from "@/lib/api
 import { buildReportHtml } from "@/lib/reportHtml";
 import { peso, titleCase } from "@/theme/zonal";
 import { useTheme, type Palette } from "@/theme/theme";
+import { ShareCard } from "@/components/ShareCard";
+import { shareViewAsImage } from "@/lib/shareImage";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -54,6 +56,7 @@ export default function ReportScreen() {
   const { user, token } = useAuth();
   const { c } = useTheme();
   const s = useMemo(() => makeStyles(c), [c]);
+  const shotRef = useRef<View>(null);
 
   const [info, setInfo] = useState<{ name: string; city: string; value: number | null; code: string } | null>(null);
   const [haz, setHaz] = useState<HazardProfile | null>(null);
@@ -133,6 +136,11 @@ export default function ReportScreen() {
     try { await Share.share({ message: lines.join("\n") }); } catch { /* cancelled */ }
   }, [info, haz]);
 
+  const shareImage = useCallback(async () => {
+    const r = await shareViewAsImage(shotRef, title);
+    if (!r.ok) Alert.alert("Share as image", "This works in the installed app (not available in Expo Go).");
+  }, [title]);
+
   return (
     <View style={s.root}>
       <StatusBar style="light" />
@@ -155,15 +163,37 @@ export default function ReportScreen() {
       )}
 
       <SafeAreaView edges={["bottom"]} style={{ backgroundColor: c.card, borderTopWidth: 1, borderTopColor: c.line }}>
-        <Pressable onPress={onDownload} disabled={downloading || !html} style={({ pressed }) => [s.downloadBtn, (downloading || !html || pressed) && { opacity: 0.6 }]}>
-          {downloading ? <ActivityIndicator color="#16223a" /> : (
-            <>
-              <Ionicons name="download-outline" size={18} color="#16223a" />
-              <Text style={s.downloadT}>Download PDF</Text>
-            </>
-          )}
-        </Pressable>
+        <View style={s.btnRow}>
+          <Pressable onPress={shareImage} disabled={!html} style={({ pressed }) => [s.imgBtn, (!html || pressed) && { opacity: 0.6 }]}>
+            <Ionicons name="share-social-outline" size={18} color={c.isDark ? c.goldLite : c.navy} />
+            <Text style={s.imgT}>Share image</Text>
+          </Pressable>
+          <Pressable onPress={onDownload} disabled={downloading || !html} style={({ pressed }) => [s.downloadBtn, (downloading || !html || pressed) && { opacity: 0.6 }]}>
+            {downloading ? <ActivityIndicator color="#16223a" /> : (
+              <>
+                <Ionicons name="download-outline" size={18} color="#16223a" />
+                <Text style={s.downloadT}>Download PDF</Text>
+              </>
+            )}
+          </Pressable>
+        </View>
       </SafeAreaView>
+
+      {/* Off-screen branded card captured to PNG for "Share image" */}
+      <View style={s.offscreen} pointerEvents="none">
+        <ShareCard
+          ref={shotRef}
+          name={info?.name || title}
+          address={info?.city || ""}
+          value={info?.value ?? null}
+          code={info?.code ?? null}
+          hazardLabel={haz?.riskLabel ?? null}
+          hazardScore={haz?.score ?? null}
+          hazardColor={haz?.riskColor ?? null}
+          preparedBy={preparedBy}
+          dateStr={dateStr}
+        />
+      </View>
     </View>
   );
 }
@@ -177,7 +207,11 @@ function makeStyles(c: Palette) {
     accent: { height: 2, backgroundColor: c.gold },
     center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, backgroundColor: c.card },
     dim: { color: c.slate, fontSize: 12.5 },
-    downloadBtn: { margin: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.gold, borderRadius: 13, paddingVertical: 15, shadowColor: c.goldDeep, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 7 },
+    btnRow: { flexDirection: "row", gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
+    imgBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: c.card, borderWidth: 1.5, borderColor: c.isDark ? c.goldLite : c.navy, borderRadius: 13, paddingVertical: 14, paddingHorizontal: 16 },
+    imgT: { color: c.isDark ? c.goldLite : c.navy, fontWeight: "800", fontSize: 13.5 },
+    downloadBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.gold, borderRadius: 13, paddingVertical: 14, shadowColor: c.goldDeep, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 7 },
     downloadT: { color: "#16223a", fontWeight: "800", fontSize: 15 },
+    offscreen: { position: "absolute", left: -10000, top: 0 },
   });
 }
