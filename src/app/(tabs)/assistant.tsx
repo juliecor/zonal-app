@@ -16,13 +16,35 @@ import { provinceToDomain } from "@/lib/landuse";
 import { computeCosts, estimatedValue } from "@/lib/phComputations";
 import { useTheme, type Palette } from "@/theme/theme";
 import { SERIF } from "@/theme/zonal";
+import * as SecureStore from "expo-secure-store";
 
-const SUGGESTIONS = [
-  "What's the commercial zonal value in Lahug, Cebu City?",
+// Quick-ask chips. With a property in view we offer lot-specific questions; otherwise general ones.
+const GENERAL_ASKS = [
   "Taxes & fees to transfer a ₱3,000,000 lot?",
   "Monthly amortization on a ₱2.5M lot, 20% down, 20 years?",
+  "What's the commercial zonal value in Lahug, Cebu City?",
+  "Cheapest residential area in Mandaue?",
   "Is Banilad, Cebu City flood-prone?",
 ];
+const CONTEXT_ASKS = [
+  "Is this good value for the risk?",
+  "Total cost to buy this — taxes & fees",
+  "Monthly amortization — 20% down, 20 years",
+  "What business fits this location?",
+  "Explain the geohazards in simple terms",
+];
+
+// Reply language. English is the default; the others append a directive the model follows.
+const LANG_KEY = "zv_ai_lang";
+const LANGS: { key: string; label: string; directive?: string }[] = [
+  { key: "English", label: "EN" },
+  { key: "Tagalog", label: "Tagalog", directive: "Reply in conversational Tagalog (Filipino). Keep legal/tax terms (e.g. Capital Gains Tax) and ₱ amounts as-is." },
+  { key: "Bisaya", label: "Bisaya", directive: "Reply in Cebuano (Bisaya). Keep legal/tax terms (e.g. Capital Gains Tax) and ₱ amounts as-is." },
+];
+function langDirective(lang: string): string {
+  const d = LANGS.find((l) => l.key === lang)?.directive;
+  return d ? `\n\n[${d}]` : "";
+}
 
 // Cost/tax/financing intent → attach app-computed reference figures to the question.
 const COST_INTENT = /\b(cost|costs|tax|taxes|cgt|capital\s*gains|dst|stamp|transfer|registration|amortizat|amortis|monthly|mortgage|loan|financ|down\s*payment|amilyar|rpt|real\s*property\s*tax|fee|fees|closing|how\s*much|magkano|budget|afford|down)\b/i;
@@ -48,6 +70,26 @@ function ctxCostReference(ctx: any): string {
   );
 }
 
+// When a property is open (came from the map/property screen), ground EVERY answer in its
+// real value, classification and geohazards — so the AI talks about THIS lot, not generic.
+function ctxPropertyReference(ctx: any): string {
+  if (!ctx) return "";
+  const parts: string[] = [];
+  const loc = [ctx.street, ctx.barangay, ctx.city].filter(Boolean).join(", ");
+  if (loc) parts.push(`Location: ${loc}`);
+  if (Number(ctx.zonalValue) > 0) parts.push(`BIR zonal value: ₱${Number(ctx.zonalValue).toLocaleString("en-PH")}/sqm${ctx.classification ? ` (${ctx.classification})` : ""}`);
+  if (ctx.landUse) parts.push(`Land-use values: ${ctx.landUse}`);
+  const hz = [
+    ctx.flood && `flood ${ctx.flood}`, ctx.landslide && `landslide ${ctx.landslide}`,
+    ctx.stormSurge && `storm surge ${ctx.stormSurge}`, ctx.fault && `fault ${ctx.fault}`,
+    ctx.liquefaction && `liquefaction ${ctx.liquefaction}`, ctx.tsunami && `tsunami ${ctx.tsunami}`,
+  ].filter(Boolean).join(", ");
+  if (hz) parts.push(`Geohazards: ${hz}`);
+  if (ctx.overallRisk) parts.push(`Overall risk: ${ctx.overallRisk}`);
+  if (!parts.length) return "";
+  return `\n\n[PROPERTY THE USER IS VIEWING — ground your answer in this exact lot:\n• ${parts.join("\n• ")}]`;
+}
+
 export default function AssistantScreen() {
   const { token } = useAuth();
   const { c } = useTheme();
@@ -59,12 +101,19 @@ export default function AssistantScreen() {
   const [typing, setTyping] = useState(false);    // letter-by-letter animation running
   const scroller = useRef<ScrollView>(null);
   const ctxRef = useRef<any>(null);
+  const [ctx, setCtx] = useState<any>(null);       // same as ctxRef, but reactive for the chips
+  const [lang, setLang] = useState("English");
   const typeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fullRef = useRef("");                      // the full reply currently being typed
 
+  // Remember the agent's preferred reply language.
+  useEffect(() => { SecureStore.getItemAsync(LANG_KEY).then((v) => { if (v) setLang(v); }).catch(() => {}); }, []);
+  function chooseLang(l: string) { setLang(l); SecureStore.setItemAsync(LANG_KEY, l).catch(() => {}); }
+
   useEffect(() => {
     if (params.ctx) {
-      try { ctxRef.current = JSON.parse(params.ctx); } catch { ctxRef.current = null; }
+      try { const parsed = JSON.parse(params.ctx); ctxRef.current = parsed; setCtx(parsed); }
+      catch { ctxRef.current = null; setCtx(null); }
     }
     if (params.q) send(params.q);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -126,10 +175,15 @@ export default function AssistantScreen() {
     setLoading(true);
     scrollEnd();
     try {
-      const domain = ctxRef.current?.province ? provinceToDomain(ctxRef.current.province) : "cebu.zonalvalue.com";
-      // For cost/tax/financing questions about a selected property, hand the AI exact app-computed figures.
-      const apiQuestion = COST_INTENT.test(q) ? q + ctxCostReference(ctxRef.current) : q;
-      const { answer } = await askAssistant(apiQuestion, { domain, history, context: ctxRef.current, token });
+      const ctxObj = ctxRef.current;
+      const domain = ctxObj?.province ? provinceToDomain(ctxObj.province) : "cebu.zonalvalue.com";
+      // Ground the answer in the open property, attach exact app-computed cost figures for
+      // money questions, and steer the reply language — then ask.
+      let apiQuestion = q;
+      if (ctxObj) apiQuestion += ctxPropertyReference(ctxObj);
+      if (COST_INTENT.test(q)) apiQuestion += ctxCostReference(ctxObj);
+      apiQuestion += langDirective(lang);
+      const { answer } = await askAssistant(apiQuestion, { domain, history, context: ctxObj, token });
       setLoading(false);
       const reply = answer || "Sorry, I couldn't reach the data just now. Please try again.";
       setMessages((m) => [...m, { role: "assistant", content: "" }]);
@@ -144,6 +198,7 @@ export default function AssistantScreen() {
 
   const empty = messages.length === 0;
   const busy = loading || typing;
+  const asks = ctx ? CONTEXT_ASKS : GENERAL_ASKS;
 
   return (
     <Animated.View style={[s.root, kbStyle]}>
@@ -151,6 +206,13 @@ export default function AssistantScreen() {
       <SafeAreaView edges={["top"]} style={{ backgroundColor: c.header }}>
         <View style={s.head}>
           <Image source={require("../../../assets/images/zonal-ai-mark.png")} style={s.headLogo} contentFit="contain" />
+          <View style={s.langRow}>
+            {LANGS.map((l) => (
+              <Pressable key={l.key} onPress={() => chooseLang(l.key)} style={[s.langPill, lang === l.key && s.langPillOn]} hitSlop={6}>
+                <Text style={[s.langPillT, lang === l.key && s.langPillTOn]}>{l.label}</Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
       </SafeAreaView>
 
@@ -161,7 +223,7 @@ export default function AssistantScreen() {
             <Text style={s.wTitle}>Ask about any Philippine address.</Text>
             <Text style={s.wSub}>Compare areas, weigh value against risk — answered in plain language and grounded in official BIR zonal values and PHIVOLCS / Project NOAH hazards.</Text>
             <View style={s.chips}>
-              {SUGGESTIONS.map((sug) => (
+              {asks.map((sug) => (
                 <Pressable key={sug} onPress={() => send(sug)} style={s.chip}>
                   <Text style={s.chipT}>{sug}</Text>
                   <Text style={s.chipArrow}>→</Text>
@@ -179,6 +241,14 @@ export default function AssistantScreen() {
           </View>
         )}
       </ScrollView>
+
+      {!empty && !busy && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.quickWrap} contentContainerStyle={s.quickRow} keyboardShouldPersistTaps="handled">
+          {asks.map((a) => (
+            <Pressable key={a} onPress={() => send(a)} style={s.quickChip}><Text style={s.quickChipT} numberOfLines={1}>{a}</Text></Pressable>
+          ))}
+        </ScrollView>
+      )}
 
       <View style={s.inbar}>
         <TextInput
@@ -198,8 +268,17 @@ export default function AssistantScreen() {
 function makeStyles(c: Palette) {
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: c.paper },
-    head: { alignItems: "center", justifyContent: "center", paddingHorizontal: 15, paddingVertical: 8 },
-  headLogo: { width: 46, height: 46 },
+    head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 15, paddingVertical: 8 },
+    headLogo: { width: 46, height: 46 },
+    langRow: { flexDirection: "row", gap: 4, backgroundColor: "rgba(255,255,255,0.10)", borderRadius: 100, padding: 3 },
+    langPill: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 100 },
+    langPillOn: { backgroundColor: c.gold },
+    langPillT: { color: "#cdd6ee", fontSize: 11.5, fontWeight: "700" },
+    langPillTOn: { color: "#16223a" },
+    quickWrap: { flexGrow: 0, backgroundColor: c.paper, borderTopWidth: 1, borderTopColor: c.line },
+    quickRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
+    quickChip: { backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 100, paddingHorizontal: 13, paddingVertical: 8 },
+    quickChipT: { color: c.inkSoft, fontSize: 12.5, fontWeight: "600" },
     bot: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: c.goldLite },
     botT: { color: "#16223a", fontWeight: "800", fontSize: 14 },
     title: { fontFamily: SERIF, fontSize: 15, fontWeight: "600", color: "#fff" },
