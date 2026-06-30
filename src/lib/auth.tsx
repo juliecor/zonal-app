@@ -67,6 +67,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await SecureStore.setItemAsync(TOKEN_KEY, res.token);
     setToken(res.token);
     setUser(res.user);
+    // The login/register/OTP responses omit avatar_url, so a fresh sign-in showed initials
+    // instead of the user's S3 photo. Pull the full profile from /me (which includes it).
+    try { const full = await authMe(res.token); if (full) setUser(full); } catch { /* ignore */ }
   }
 
   const value = useMemo<AuthState>(() => ({
