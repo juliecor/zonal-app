@@ -21,6 +21,7 @@ interface AuthState {
   verifyLoginOtp: (userId: number, code: string) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
+  applyUser: (u: AuthUser) => void;   // update the cached user immediately (after editing profile)
   // Biometric app-lock (Face ID / fingerprint)
   biometricEnabled: boolean;
   locked: boolean;
@@ -99,6 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const u = await authMe(token);
       if (u) setUser(u);
     },
+    applyUser(u) { setUser(u); },
     biometricEnabled,
     locked,
     async unlock() {

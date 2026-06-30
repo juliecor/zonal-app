@@ -373,6 +373,49 @@ export async function authLogout(token: string): Promise<void> {
   } catch { /* ignore */ }
 }
 
+/* ──────────────────── Profile (edit name/phone + avatar) ──────────────────── */
+
+export async function updateProfile(
+  token: string,
+  payload: { first_name?: string; middle_name?: string; last_name?: string; phone?: string },
+): Promise<AuthUser> {
+  const res = await fetch(`${API_BASE}/profile`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", Accept: "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const j = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(j?.message || `Couldn't save your profile (${res.status}).`);
+  return j as AuthUser;
+}
+
+/** Upload a profile photo (multipart). Don't set Content-Type — fetch adds the boundary. */
+export async function uploadAvatar(token: string, uri: string): Promise<{ avatar_url: string; avatar_path?: string; user?: AuthUser }> {
+  const name = uri.split("/").pop() || "avatar.jpg";
+  const ext = (name.split(".").pop() || "jpg").toLowerCase();
+  const type = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+  const form = new FormData();
+  form.append("avatar", { uri, name, type } as any);
+  const res = await fetch(`${API_BASE}/profile/avatar`, {
+    method: "POST",
+    headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  const j = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(j?.message || `Couldn't upload your photo (${res.status}).`);
+  return j;
+}
+
+export async function deleteAvatar(token: string): Promise<AuthUser> {
+  const res = await fetch(`${API_BASE}/profile/avatar`, {
+    method: "DELETE",
+    headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+  });
+  const j = await res.json().catch(() => null);
+  if (!res.ok) throw new Error(j?.message || `Couldn't remove your photo (${res.status}).`);
+  return (j?.user ?? j) as AuthUser;
+}
+
 /* ──────────────────── Search-credit (token) requests ──────────────────── */
 
 export interface TokenRequest {

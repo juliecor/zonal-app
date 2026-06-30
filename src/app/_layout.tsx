@@ -48,6 +48,7 @@ export default function RootLayout() {
                 <Stack.Screen name="property" options={{ presentation: "card", animation: "slide_from_right" }} />
                 <Stack.Screen name="report" options={{ presentation: "card", animation: "slide_from_bottom" }} />
                 <Stack.Screen name="saved" options={{ presentation: "card", animation: "slide_from_right" }} />
+                <Stack.Screen name="edit-profile" options={{ presentation: "card", animation: "slide_from_right" }} />
               </Stack>
             </Gate>
           </AuthProvider>

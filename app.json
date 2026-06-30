@@ -46,6 +46,13 @@
         {
           "faceIDPermission": "Unlock zonalvalue.ph with Face ID."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow zonalvalue.ph to access your photos to set a profile picture.",
+          "cameraPermission": "Allow zonalvalue.ph to use the camera to take a profile picture."
+        }
       ]
     ],
     "experiments": {

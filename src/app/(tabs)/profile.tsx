@@ -6,6 +6,7 @@ import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 
 import { useAuth } from "@/lib/auth";
 import { adminListTokenRequests } from "@/lib/api";
@@ -113,6 +114,10 @@ export default function ProfileScreen() {
           <Text style={s.name}>{titleCase(user.name || `${user.first_name} ${user.last_name}`)}</Text>
           <Text style={s.email}>{user.email}</Text>
           {!!user.role && <View style={s.roleChip}><Text style={s.roleT}>{user.role.toUpperCase()}</Text></View>}
+          <Pressable onPress={() => router.push("/edit-profile" as any)} style={s.editProfileBtn}>
+            <Ionicons name="create-outline" size={15} color={isDark ? c.goldLite : c.navy} />
+            <Text style={s.editProfileT}>Edit profile</Text>
+          </Pressable>
         </View>
 
         {/* Appearance / night mode */}
@@ -197,7 +202,9 @@ function makeStyles(c: Palette) {
     brand: { color: "#fff", fontSize: 19, fontWeight: "800", letterSpacing: -0.3 },
     brandSub: { color: "#9fb0d8", fontSize: 10, marginTop: 2, fontWeight: "600" },
 
-    profCard: { alignItems: "center", backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 18, paddingVertical: 22, paddingHorizontal: 16 },
+    profCard: { position: "relative", alignItems: "center", backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 18, paddingVertical: 22, paddingHorizontal: 16 },
+    editProfileBtn: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 14, backgroundColor: c.chip, borderRadius: 100, paddingHorizontal: 16, paddingVertical: 9 },
+    editProfileT: { fontSize: 12.5, fontWeight: "800", color: c.isDark ? c.goldLite : c.navy },
     avatar: { width: 68, height: 68, borderRadius: 34, alignItems: "center", justifyContent: "center", backgroundColor: c.goldLite },
     avatarT: { color: "#16223a", fontWeight: "800", fontSize: 26, fontFamily: SERIF },
     name: { fontFamily: SERIF, fontSize: 20, fontWeight: "600", color: c.ink, marginTop: 12 },
