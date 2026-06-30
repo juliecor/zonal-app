@@ -560,3 +560,43 @@ export async function askAssistant(
     clearTimeout(t);
   }
 }
+
+/** Streaming version: shows the answer as the AI writes it (the server streams token-by-token).
+ *  Calls onText(fullSoFar) on every chunk. Uses Expo's streaming fetch; throws if streaming
+ *  isn't available so the caller can fall back to askAssistant(). */
+export async function askAssistantStream(
+  question: string,
+  opts: { domain?: string; history?: ChatMsg[]; context?: any; token?: string | null },
+  onText: (fullSoFar: string) => void,
+): Promise<AssistantReply> {
+  const { fetch: expoFetch } = await import("expo/fetch");
+  const headers: Record<string, string> = { "Content-Type": "application/json", Accept: "text/plain" };
+  if (opts.token) headers["Cookie"] = `authToken=${encodeURIComponent(opts.token)}`;
+  const res = await expoFetch(`${WEB_BASE}/assistant`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      question,
+      domain: opts.domain ?? "cebu.zonalvalue.com",
+      history: [...PRIMING, ...(opts.history ?? []).slice(-10)],
+      context: opts.context ?? null,
+    }),
+  });
+  if (!res.ok || !res.body) throw new Error(`assistant stream failed (${res.status})`);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "", nl = -1, meta: any = null;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    if (nl < 0) {
+      nl = buf.indexOf("\n");
+      if (nl >= 0) { try { meta = JSON.parse(buf.slice(0, nl)); } catch { meta = null; } }
+    }
+    if (nl >= 0) onText(buf.slice(nl + 1));
+  }
+  const answer = nl >= 0 ? buf.slice(nl + 1).trim() : buf.trim();
+  return { meta, answer };
+}

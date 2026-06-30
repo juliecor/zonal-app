@@ -10,7 +10,7 @@ import { StatusBar } from "expo-status-bar";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 
 import { ChatBubble } from "@/components/ChatBubble";
-import { askAssistant, type ChatMsg } from "@/lib/api";
+import { askAssistant, askAssistantStream, type ChatMsg } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { provinceToDomain } from "@/lib/landuse";
 import { computeCosts, estimatedValue } from "@/lib/phComputations";
@@ -174,25 +174,48 @@ export default function AssistantScreen() {
     setMessages((m) => [...m, { role: "user", content: q }]);
     setLoading(true);
     scrollEnd();
+
+    const ctxObj = ctxRef.current;
+    const domain = ctxObj?.province ? provinceToDomain(ctxObj.province) : "cebu.zonalvalue.com";
+    // Ground the answer in the open property, attach exact app-computed cost figures for
+    // money questions, and steer the reply language — then ask.
+    let apiQuestion = q;
+    if (ctxObj) apiQuestion += ctxPropertyReference(ctxObj);
+    if (COST_INTENT.test(q)) apiQuestion += ctxCostReference(ctxObj);
+    apiQuestion += langDirective(lang);
+
+    // Show the reply LIVE as the AI writes it (the server streams token-by-token).
+    let added = false;
+    const showChunk = (full: string) => {
+      if (!full) return;
+      if (!added) { added = true; setLoading(false); setTyping(true); setMessages((m) => [...m, { role: "assistant", content: full }]); }
+      else setMessages((m) => { const c = m.slice(); c[c.length - 1] = { role: "assistant", content: full }; return c; });
+      scrollEnd(false);
+    };
+
     try {
-      const ctxObj = ctxRef.current;
-      const domain = ctxObj?.province ? provinceToDomain(ctxObj.province) : "cebu.zonalvalue.com";
-      // Ground the answer in the open property, attach exact app-computed cost figures for
-      // money questions, and steer the reply language — then ask.
-      let apiQuestion = q;
-      if (ctxObj) apiQuestion += ctxPropertyReference(ctxObj);
-      if (COST_INTENT.test(q)) apiQuestion += ctxCostReference(ctxObj);
-      apiQuestion += langDirective(lang);
-      const { answer } = await askAssistant(apiQuestion, { domain, history, context: ctxObj, token });
-      setLoading(false);
-      const reply = answer || "Sorry, I couldn't reach the data just now. Please try again.";
-      setMessages((m) => [...m, { role: "assistant", content: "" }]);
-      setTyping(true);
-      await typeOut(reply);
+      const { answer } = await askAssistantStream(apiQuestion, { domain, history, context: ctxObj, token }, showChunk);
+      if (!added) {
+        setLoading(false);
+        setMessages((m) => [...m, { role: "assistant", content: answer || "Sorry, I couldn't reach the data just now. Please try again." }]);
+      } else if (answer) {
+        setMessages((m) => { const c = m.slice(); c[c.length - 1] = { role: "assistant", content: answer }; return c; });
+      }
       setTyping(false);
     } catch {
-      setLoading(false);
-      setMessages((m) => [...m, { role: "assistant", content: "I couldn't connect right now. Please try again." }]);
+      if (added) { setTyping(false); return; } // had partial streamed text — keep it
+      // Streaming unavailable → fall back to the non-streaming request + typewriter.
+      try {
+        const { answer } = await askAssistant(apiQuestion, { domain, history, context: ctxObj, token });
+        setLoading(false);
+        setMessages((m) => [...m, { role: "assistant", content: "" }]);
+        setTyping(true);
+        await typeOut(answer || "Sorry, I couldn't reach the data just now. Please try again.");
+        setTyping(false);
+      } catch {
+        setLoading(false); setTyping(false);
+        setMessages((m) => [...m, { role: "assistant", content: "I couldn't connect right now. Please try again." }]);
+      }
     }
   }
 
