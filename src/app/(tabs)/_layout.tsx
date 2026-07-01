@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/lib/auth";
 import { useTheme, type Palette } from "@/theme/theme";
 
-const AI_MARK = require("../../../assets/images/zonal-ai-mark.png");
+const AI_MARK = require("../../../assets/images/ai-head.png");
 
 const TAB_ICON: Record<string, { on: keyof typeof Ionicons.glyphMap; off: keyof typeof Ionicons.glyphMap }> = {
   index: { on: "map", off: "map-outline" },

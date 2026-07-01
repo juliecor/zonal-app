@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 
 import { useTheme, type Palette } from "@/theme/theme";
 
-const AI_MARK = require("../../assets/images/zonal-ai-mark.png");
+const AI_MARK = require("../../assets/images/ai-head.png");
 
 // ── Lightweight markdown for the assistant: **bold**, bullet/numbered lists, headings,
 //    paragraph spacing, and highlighted ₱ amounts. No deps; safe with the typewriter

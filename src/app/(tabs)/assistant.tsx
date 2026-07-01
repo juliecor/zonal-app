@@ -3,7 +3,9 @@ import {
   ActivityIndicator, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, View,
 } from "react-native";
-import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
+import Animated, {
+  Easing, useAnimatedKeyboard, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming,
+} from "react-native-reanimated";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -17,6 +19,31 @@ import { computeCosts, estimatedValue } from "@/lib/phComputations";
 import { useTheme, type Palette } from "@/theme/theme";
 import { SERIF } from "@/theme/zonal";
 import * as SecureStore from "expo-secure-store";
+
+const AI_HEAD = require("../../../assets/images/ai-head.png");
+const AI_MASCOT = require("../../../assets/images/ai-mascot.png");
+const MASCOT_RATIO = 1151 / 723; // h/w
+
+// The thinking mascot greets you on an empty chat, with a gentle idle float.
+function HeroMascot() {
+  const bob = useSharedValue(0);
+  useEffect(() => {
+    bob.value = withRepeat(withSequence(
+      withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.quad) }),
+      withTiming(0, { duration: 1600, easing: Easing.inOut(Easing.quad) }),
+    ), -1, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const st = useAnimatedStyle(() => ({ transform: [{ translateY: bob.value * -7 }] }));
+  const h = 196, w = h / MASCOT_RATIO;
+  return (
+    <View style={{ alignItems: "center", marginBottom: 8 }}>
+      <Animated.View style={st}>
+        <Image source={AI_MASCOT} style={{ width: w, height: h }} contentFit="contain" />
+      </Animated.View>
+    </View>
+  );
+}
 
 // Quick-ask chips. With a property in view we offer lot-specific questions; otherwise general ones.
 const GENERAL_ASKS = [
@@ -266,7 +293,7 @@ export default function AssistantScreen() {
       <StatusBar style="light" />
       <SafeAreaView edges={["top"]} style={{ backgroundColor: c.header }}>
         <View style={s.head}>
-          <Image source={require("../../../assets/images/zonal-ai-mark.png")} style={s.headLogo} contentFit="contain" />
+          <Image source={AI_HEAD} style={s.headLogo} contentFit="contain" />
           <View style={s.langRow}>
             {LANGS.map((l) => (
               <Pressable key={l.key} onPress={() => chooseLang(l.key)} style={[s.langPill, lang === l.key && s.langPillOn]} hitSlop={6}>
@@ -280,9 +307,10 @@ export default function AssistantScreen() {
       <ScrollView ref={scroller} style={s.feed} contentContainerStyle={{ padding: 14, gap: 11, paddingBottom: 18 }} keyboardShouldPersistTaps="handled">
         {empty && (
           <View style={s.welcome}>
-            <View style={s.wBadge}><Text style={s.wBadgeT}>✦  YOUR ZONAL ANALYST</Text></View>
-            <Text style={s.wTitle}>Ask about any Philippine address.</Text>
-            <Text style={s.wSub}>Compare areas, weigh value against risk — answered in plain language and grounded in official BIR zonal values and PHIVOLCS / Project NOAH hazards.</Text>
+            <HeroMascot />
+            <View style={[s.wBadge, { alignSelf: "center" }]}><Text style={s.wBadgeT}>✦  YOUR ZONAL ANALYST</Text></View>
+            <Text style={[s.wTitle, { textAlign: "center" }]}>Ask about any Philippine address.</Text>
+            <Text style={[s.wSub, { textAlign: "center" }]}>Compare areas, weigh value against risk — answered in plain language and grounded in official BIR zonal values and PHIVOLCS / Project NOAH hazards.</Text>
             <View style={s.chips}>
               {asks.map((sug) => (
                 <Pressable key={sug} onPress={() => send(sug)} style={s.chip}>
@@ -297,7 +325,7 @@ export default function AssistantScreen() {
         {messages.map((m, i) => <ChatBubble key={i} role={m.role} text={m.content} />)}
         {loading && (
           <View style={s.typing}>
-            <Image source={require("../../../assets/images/zonal-ai-mark.png")} style={s.botMark} contentFit="contain" />
+            <Image source={AI_HEAD} style={s.botMark} contentFit="contain" />
             <View style={s.typingBubble}><ActivityIndicator color={c.goldDeep} size="small" /><Text style={s.typingT}>Analyzing…</Text></View>
           </View>
         )}
