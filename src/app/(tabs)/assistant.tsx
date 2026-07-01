@@ -4,7 +4,7 @@ import {
   StyleSheet, Text, TextInput, View,
 } from "react-native";
 import Animated, {
-  Easing, useAnimatedKeyboard, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming,
+  Easing, KeyboardState, useAnimatedKeyboard, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming,
 } from "react-native-reanimated";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -156,7 +156,13 @@ export default function AssistantScreen() {
   // Lift the input above the keyboard via reanimated (tracks the keyboard on the UI
   // thread — reliable on Android edge-to-edge, no container resize, no flicker).
   const keyboard = useAnimatedKeyboard();
-  const kbStyle = useAnimatedStyle(() => ({ paddingBottom: keyboard.height.value }));
+  // Only lift by the keyboard height while it's actually opening/open. On some Android
+  // edge-to-edge setups `height` is reported non-zero at rest, which would otherwise pad
+  // half the screen and float the input bar in the middle.
+  const kbStyle = useAnimatedStyle(() => {
+    const open = keyboard.state.value === KeyboardState.OPEN || keyboard.state.value === KeyboardState.OPENING;
+    return { paddingBottom: open ? keyboard.height.value : 0 };
+  });
 
   // Stop the typewriter cleanly when leaving the screen (snap reply to full text).
   useFocusEffect(
