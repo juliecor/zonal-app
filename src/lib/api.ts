@@ -93,7 +93,12 @@ export interface ZonalRecord {
 }
 export interface ZonalPage { data: ZonalRecord[]; total: number; current_page: number; last_page: number; per_page: number }
 
-/** Street-by-street BIR records (requires a signed-in token; deducts 1 credit, admins unlimited). */
+/**
+ * Street-by-street BIR records (requires a signed-in token).
+ * The `X-ZV-Free-List` header marks this as the app's Zonal/Browse list — a plain DB read,
+ * so the backend does NOT charge a credit for it (map scans, which incur Google geocoding,
+ * still meter a token). The website is unaffected — it never sends this header.
+ */
 export async function getZonalValues(
   token: string,
   f: { province?: string; city?: string; barangay?: string; classification_code?: string; q?: string; page?: number; per_page?: number },
@@ -101,7 +106,7 @@ export async function getZonalValues(
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries(f)) if (v != null && v !== "") p.set(k, String(v));
   const res = await fetch(`${API_BASE}/zonal-values?${p.toString()}`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json", "X-ZV-Free-List": "1" },
   });
   if (res.status === 402) throw new Error("OUT_OF_CREDITS");
   if (res.status === 401 || res.status === 403) throw new Error("UNAUTHORIZED");
