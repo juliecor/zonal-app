@@ -18,6 +18,7 @@ export interface ReportData {
   riskColor: string;
   checked: number;
   preparedBy: string;
+  brokerRate?: number;      // broker's commission (fraction, e.g. 0.05); default 5%
 }
 
 const NAVY = "#1e3a8a", GOLD = "#155eef", INK = "#16223a";
@@ -83,7 +84,7 @@ export function buildReportHtml(d: ReportData): string {
     <div class="mapwrap"><img src="${d.mapDataUrl}" alt="Location map"/></div>` : "";
 
   const php = (n: number) => "₱" + grp(String(Math.round(n)));
-  const costs = d.value && d.value > 0 ? computeCosts({ price: d.value * sqm }) : null;
+  const costs = d.value && d.value > 0 ? computeCosts({ price: d.value * sqm, brokerRate: d.brokerRate }) : null;
   const costsBlock = costs ? `
     <div class="section">
       <div class="h2">Estimated Transaction Costs</div><div class="h2rule"></div>

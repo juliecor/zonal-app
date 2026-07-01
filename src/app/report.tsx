@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth";
 import { hazardsAt, type HazardProfile } from "@/lib/hazards";
 import { nearestValue, preciseAddress, resolveDomain, scanArea } from "@/lib/api";
 import { buildReportHtml } from "@/lib/reportHtml";
+import { loadBrokerPct } from "@/lib/prefs";
 import { peso, titleCase } from "@/theme/zonal";
 import { useTheme, type Palette } from "@/theme/theme";
 import { ShareCard } from "@/components/ShareCard";
@@ -62,6 +63,8 @@ export default function ReportScreen() {
   const [haz, setHaz] = useState<HazardProfile | null>(null);
   const [mapUrl, setMapUrl] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [brokerPct, setBrokerPct] = useState(5); // agent's chosen commission rate (persisted)
+  useEffect(() => { loadBrokerPct().then(setBrokerPct); }, []);
 
   const dateStr = useMemo(() => { const d = new Date(); return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; }, []);
   const preparedBy = titleCase(user?.name || [user?.first_name, user?.last_name].filter(Boolean).join(" ")) || "Filipino Homes Agent";
@@ -103,8 +106,9 @@ export default function ReportScreen() {
       location, value: info.value, classification: info.code, dateStr,
       mapDataUrl: mapUrl, hazards: haz.hazards, score: haz.score,
       riskLabel: haz.riskLabel, riskColor: haz.riskColor, checked: haz.checked, preparedBy,
+      brokerRate: brokerPct / 100,
     });
-  }, [info, haz, mapUrl, dateStr, preparedBy]);
+  }, [info, haz, mapUrl, dateStr, preparedBy, brokerPct]);
 
   const onDownload = useCallback(async () => {
     if (!html) return;

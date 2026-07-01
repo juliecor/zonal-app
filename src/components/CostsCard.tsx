@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, View, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -6,6 +6,7 @@ import {
   computeCosts, estimatedValue, realPropertyTax,
   TRANSFER_RATE_CITY, TRANSFER_RATE_PROVINCE,
 } from "@/lib/phComputations";
+import { loadBrokerPct, saveBrokerPct } from "@/lib/prefs";
 import { peso, SERIF } from "@/theme/zonal";
 import { useTheme, type Palette } from "@/theme/theme";
 
@@ -23,6 +24,8 @@ export function CostsCard({ valuePerSqm, code }: { valuePerSqm: number; code?: s
   const [term, setTerm] = useState(20);
   const [city, setCity] = useState(true);
   const [brokerPct, setBrokerPct] = useState(5);
+  useEffect(() => { loadBrokerPct().then(setBrokerPct); }, []);
+  const chooseBroker = (b: number) => { setBrokerPct(b); saveBrokerPct(b); };
 
   const area = Math.max(0, parseFloat(areaStr.replace(/,/g, "")) || 0);
   const rate = Math.max(0, parseFloat(rateStr) || 0);
@@ -84,7 +87,7 @@ export function CostsCard({ valuePerSqm, code }: { valuePerSqm: number; code?: s
           <View style={s.brokerCtl}>
             <View style={s.toggle}>
               {BROKER.map((b) => (
-                <Pressable key={b} onPress={() => setBrokerPct(b)} style={[s.tgBtn, brokerPct === b && s.tgOn]}>
+                <Pressable key={b} onPress={() => chooseBroker(b)} style={[s.tgBtn, brokerPct === b && s.tgOn]}>
                   <Text style={[s.tgT, brokerPct === b && s.tgTOn]}>{b}%</Text>
                 </Pressable>
               ))}

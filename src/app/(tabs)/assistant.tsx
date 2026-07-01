@@ -16,6 +16,7 @@ import { askAssistant, askAssistantStream, type ChatMsg } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { provinceToDomain } from "@/lib/landuse";
 import { computeCosts, estimatedValue } from "@/lib/phComputations";
+import { loadBrokerPct } from "@/lib/prefs";
 import { useTheme, type Palette } from "@/theme/theme";
 import { SERIF } from "@/theme/zonal";
 import * as SecureStore from "expo-secure-store";
@@ -77,11 +78,11 @@ function langDirective(lang: string): string {
 const COST_INTENT = /\b(cost|costs|tax|taxes|cgt|capital\s*gains|dst|stamp|transfer|registration|amortizat|amortis|monthly|mortgage|loan|financ|down\s*payment|amilyar|rpt|real\s*property\s*tax|fee|fees|closing|how\s*much|magkano|budget|afford|down)\b/i;
 
 // Exact figures the AI should present verbatim (avoids 4o-mini arithmetic slips).
-function ctxCostReference(ctx: any): string {
+function ctxCostReference(ctx: any, brokerPct = 5): string {
   const v = Number(ctx?.zonalValue);
   if (!isFinite(v) || v <= 0) return "";
   const area = 250;
-  const c = computeCosts({ price: estimatedValue(v, area) });
+  const c = computeCosts({ price: estimatedValue(v, area), brokerRate: brokerPct / 100 });
   const p = (n: number) => "₱" + Math.round(n).toLocaleString("en-PH");
   return (
     `\n\n[REFERENCE FIGURES computed by the app — use these exact numbers if the question is about costs, taxes, or financing. ` +
@@ -238,7 +239,7 @@ export default function AssistantScreen() {
     // money questions, and steer the reply language — then ask.
     let apiQuestion = q;
     if (ctxObj) apiQuestion += ctxPropertyReference(ctxObj);
-    if (COST_INTENT.test(q)) apiQuestion += ctxCostReference(ctxObj);
+    if (COST_INTENT.test(q)) apiQuestion += ctxCostReference(ctxObj, await loadBrokerPct());
     apiQuestion += langDirective(lang);
 
     // Stream the reply, but reveal it with a smooth typewriter that follows the tokens.
