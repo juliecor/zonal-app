@@ -131,7 +131,7 @@ export default function ReportScreen() {
       info.value != null ? `≈ ${pesoBig(info.value * 250)} for 250 sqm · BIR-indexed` : "",
       haz ? `Overall geohazard risk: ${haz.riskLabel} (${haz.score.toFixed(1)}/3.0)` : "",
       "",
-      "via zonalvalue.ph · by Filipino Homes",
+      "via zonalvalue.ph",
     ].filter(Boolean);
     try { await Share.share({ message: lines.join("\n") }); } catch { /* cancelled */ }
   }, [info, haz]);

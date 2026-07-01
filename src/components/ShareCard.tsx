@@ -62,7 +62,7 @@ export const ShareCard = forwardRef<View, ShareCardData>(function ShareCard(d, r
           {d.preparedBy ? `Prepared by ${d.preparedBy}` : "via zonalvalue.ph"}
           {d.dateStr ? `  ·  ${d.dateStr}` : ""}
         </Text>
-        <Text style={s.footBrand}>by Filipino Homes · BIR-indexed · estimates only</Text>
+        <Text style={s.footBrand}>zonalvalue.ph · BIR-indexed · estimates only</Text>
       </View>
     </View>
   );

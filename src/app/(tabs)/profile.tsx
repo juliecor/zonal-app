@@ -99,7 +99,7 @@ export default function ProfileScreen() {
           <Logo size={40} />
           <View>
             <Text style={s.brand}>Account</Text>
-            <Text style={s.brandSub}>zonalvalue.ph · by Filipino Homes</Text>
+            <Text style={s.brandSub}>zonalvalue.ph</Text>
           </View>
         </View>
       </SafeAreaView>

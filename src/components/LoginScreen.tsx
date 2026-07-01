@@ -123,7 +123,7 @@ export function LoginScreen() {
 
   const titles: Record<Mode, { t: string; s: string }> = {
     signin: { t: "Welcome back", s: "Sign in to your account to continue." },
-    register: { t: "Create account", s: "Join zonalvalue.ph by Filipino Homes." },
+    register: { t: "Create account", s: "Join zonalvalue.ph." },
     otpEmail: { t: "Email sign-in", s: "We'll email you a 6-digit sign-in code." },
     otpCode: { t: "Check your inbox", s: `Enter the code we sent to ${otpCtx?.email || "your email"}.` },
     verify: { t: "Verify your email", s: `Enter the code we sent to ${otpCtx?.email || "your email"} to finish.` },
@@ -238,7 +238,7 @@ export function LoginScreen() {
             </Text>
           )}
 
-          <Text style={s.legal}>Built by Filipino Homes · Leuterio Realty</Text>
+          <Text style={s.legal}>© zonalvalue.ph</Text>
           <Animated.View style={spacerStyle} />
         </ScrollView>
       </SafeAreaView>
