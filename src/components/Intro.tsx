@@ -141,7 +141,10 @@ const styles = StyleSheet.create({
   pinCard: {
     flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#fff", borderRadius: 11,
     borderWidth: 1, borderColor: "rgba(21,94,239,0.28)", paddingLeft: 8, paddingRight: 11, paddingVertical: 5,
-    shadowColor: "#0a1024", shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8,
+    // iOS shadow only — it fades with the parent's opacity. Android `elevation` is a native
+    // shadow that does NOT fade with an animated ancestor opacity, so it lingers as a dark
+    // outline after the map fades; leaving it off keeps the hand-off to the logo clean.
+    shadowColor: "#0a1024", shadowOpacity: 0.16, shadowRadius: 11, shadowOffset: { width: 0, height: 5 },
   },
   pinDot: { width: 11, height: 11, borderRadius: 6, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(229,57,53,0.22)" },
   pinDotCore: { width: 5, height: 5, borderRadius: 3, backgroundColor: RED },
