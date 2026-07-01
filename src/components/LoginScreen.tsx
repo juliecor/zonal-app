@@ -8,9 +8,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
 
+import { Image } from "expo-image";
+
 import { useAuth } from "@/lib/auth";
 import { authResendOtp } from "@/lib/api";
-import { Logo } from "@/components/Logo";
 import { useTheme, type Palette } from "@/theme/theme";
 import { SERIF } from "@/theme/zonal";
 
@@ -145,8 +146,7 @@ export function LoginScreen() {
         >
           {/* brand */}
           <View style={s.hero}>
-            <Logo size={52} />
-            <Text style={s.brandWord}>zonalvalue<Text style={{ color: c.gold }}>.</Text>ph</Text>
+            <Image source={require("../../assets/images/zonalvalue-wordmark.png")} style={s.wordmark} contentFit="contain" />
             <Text style={s.tagline}>Property due-diligence, precisely mapped.</Text>
           </View>
 
@@ -256,8 +256,8 @@ function makeStyles(c: Palette) {
     scroll: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 26, paddingVertical: 36, maxWidth: 460, width: "100%", alignSelf: "center" },
 
     hero: { alignItems: "center", marginBottom: 30 },
-    brandWord: { color: c.ink, fontSize: 21, fontWeight: "800", letterSpacing: -0.4, marginTop: 14 },
-    tagline: { color: c.slate, fontSize: 12.5, marginTop: 6 },
+    wordmark: { width: 232, height: 64 },
+    tagline: { color: c.slate, fontSize: 12.5, marginTop: 8 },
 
     title: { fontFamily: SERIF, fontSize: 28, fontWeight: "700", color: c.ink, letterSpacing: -0.3 },
     subtitle: { fontSize: 13.5, color: c.slate, lineHeight: 20, marginTop: 6, marginBottom: 8 },
