@@ -17,7 +17,7 @@ export interface ShareCardData {
   dateStr?: string;
 }
 
-const NAVY = "#16276a", GOLD = "#c9a84c", INK = "#16223a";
+const NAVY = "#16276a", GOLD = "#155eef", INK = "#16223a";
 
 export const ShareCard = forwardRef<View, ShareCardData>(function ShareCard(d, ref) {
   const estimate = d.value != null ? d.value * 250 : null;

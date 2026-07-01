@@ -1,23 +1,24 @@
-// zonalvalue.ph brand tokens — kept in sync with the website (navy · gold · cream).
+// zonalvalue.ph brand tokens — blue accent + red pop (matches the new ZV logo / mascot).
+// `gold*` names kept for compatibility but now hold the brand blue.
 export const Z = {
   navy: "#16276a",
   navy2: "#1e3a8a",
   navyDeep: "#0c1430",
-  gold: "#c9a84c",
-  goldLite: "#e6c976",
-  goldDeep: "#9d7a2e",
-  paper: "#f7f4ec",
-  paper2: "#efe9dc",
+  gold: "#155eef",
+  goldLite: "#5b8cff",
+  goldDeep: "#0f49c4",
+  paper: "#f3f6fc",
+  paper2: "#e7edf7",
   ink: "#101a30",
   inkSoft: "#33405e",
   slate: "#67718a",
-  line: "#e4ddcc",
+  line: "#dbe4f1",
   white: "#ffffff",
   // semantic / hazard severity
   safe: "#16a34a",
   amber: "#d99a1c",
   orange: "#ea580c",
-  red: "#dc2626",
+  red: "#e53935",
 };
 
 // A serif for display numbers/titles (mirrors the website's Georgia headings).

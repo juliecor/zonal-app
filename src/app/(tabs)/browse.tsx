@@ -158,7 +158,7 @@ export default function ZonalsScreen() {
               <Ionicons name="server-outline" size={26} color={c.slate} />
               <Text style={s.dim}>You're out of search credits. Request more and an admin will top up your account.</Text>
               <Pressable onPress={() => setCreditsOpen(true)} style={s.reqBtn}>
-                <Ionicons name="add-circle-outline" size={17} color="#16223a" />
+                <Ionicons name="add-circle-outline" size={17} color="#ffffff" />
                 <Text style={s.reqBtnT}>Request credits</Text>
               </Pressable>
             </View>
@@ -219,7 +219,7 @@ function makeStyles(c: Palette) {
     root: { flex: 1, backgroundColor: c.paper },
     header: { flexDirection: "row", alignItems: "center", gap: 11, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 16 },
     logo: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: c.goldLite },
-    logoT: { color: "#16223a", fontWeight: "800", fontSize: 19 },
+    logoT: { color: "#ffffff", fontWeight: "800", fontSize: 19 },
     brand: { color: "#fff", fontSize: 19, fontWeight: "800", letterSpacing: -0.3 },
     brandSub: { color: "#9fb0d8", fontSize: 11, marginTop: 2, fontWeight: "600" },
 
@@ -239,7 +239,7 @@ function makeStyles(c: Palette) {
 
     clsRow: { paddingHorizontal: 16, paddingTop: 12, gap: 7 },
     clsChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100, backgroundColor: c.card, borderWidth: 1, borderColor: c.line },
-    clsOn: { backgroundColor: c.isDark ? "rgba(201,168,76,0.14)" : "#fbf2d8", borderColor: c.gold },
+    clsOn: { backgroundColor: c.isDark ? "rgba(21,94,239,0.14)" : "#e8f0ff", borderColor: c.gold },
     clsT: { fontSize: 12, fontWeight: "700", color: c.slate },
     clsTOn: { color: c.isDark ? c.goldLite : c.navy },
 
@@ -250,7 +250,7 @@ function makeStyles(c: Palette) {
     center: { alignItems: "center", justifyContent: "center", gap: 11, paddingVertical: 44, paddingHorizontal: 24 },
     dim: { color: c.slate, fontSize: 13, textAlign: "center", lineHeight: 19 },
     reqBtn: { marginTop: 6, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: c.gold, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 12, shadowColor: c.goldDeep, shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 5 },
-    reqBtnT: { color: "#16223a", fontWeight: "800", fontSize: 13.5 },
+    reqBtnT: { color: "#ffffff", fontWeight: "800", fontSize: 13.5 },
     more: { marginTop: 14, alignItems: "center", justifyContent: "center", backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 12, paddingVertical: 13 },
     moreT: { color: c.isDark ? c.goldLite : c.navy, fontWeight: "700", fontSize: 13 },
   });

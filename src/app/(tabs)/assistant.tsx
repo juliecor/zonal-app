@@ -370,7 +370,7 @@ function makeStyles(c: Palette) {
     quickChip: { backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 100, paddingHorizontal: 13, paddingVertical: 8 },
     quickChipT: { color: c.inkSoft, fontSize: 12.5, fontWeight: "600" },
     bot: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: c.goldLite },
-    botT: { color: "#16223a", fontWeight: "800", fontSize: 14 },
+    botT: { color: "#ffffff", fontWeight: "800", fontSize: 14 },
     title: { fontFamily: SERIF, fontSize: 15, fontWeight: "600", color: "#fff" },
     sub: { fontSize: 9.5, color: "#9fb0d8", fontWeight: "600", marginTop: 1 },
 

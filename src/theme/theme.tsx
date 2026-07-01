@@ -20,21 +20,23 @@ export interface Palette {
   isDark: boolean;
 }
 
+// NOTE: the `gold*` token NAMES are kept (they're referenced app-wide) but now hold the
+// brand BLUE — matching the new ZV logo / AI mascot. Neutrals carry a slight cool bias.
 export const LIGHT: Palette = {
   navy: "#16276a", navy2: "#1e3a8a", navyDeep: "#0c1430",
-  gold: "#c9a84c", goldLite: "#e6c976", goldDeep: "#9d7a2e",
-  paper: "#f7f4ec", paper2: "#efe9dc",
+  gold: "#155eef", goldLite: "#5b8cff", goldDeep: "#0f49c4",   // brand blue (accent)
+  paper: "#f3f6fc", paper2: "#e7edf7",
   ink: "#101a30", inkSoft: "#33405e", slate: "#67718a",
-  line: "#e4ddcc", white: "#ffffff",
-  safe: "#16a34a", amber: "#d99a1c", orange: "#ea580c", red: "#dc2626",
-  card: "#ffffff", cardAlt: "#fffdf7", chip: "#eef1fa", field: "#f7f4ec",
+  line: "#dbe4f1", white: "#ffffff",
+  safe: "#16a34a", amber: "#d99a1c", orange: "#ea580c", red: "#e53935",
+  card: "#ffffff", cardAlt: "#eff4ff", chip: "#eaf0fb", field: "#eef2fb",
   header: "#16276a", shadow: "#0c1430", isDark: false,
 };
 
-// Night mode — deep navy ground, lifted card surfaces, gold pops. The "wow".
+// Night mode — deep navy ground, lifted card surfaces, blue pops. The "wow".
 export const DARK: Palette = {
   navy: "#1b2c5e", navy2: "#2a47a0", navyDeep: "#060a16",
-  gold: "#d3b154", goldLite: "#e9ce80", goldDeep: "#c79a33",
+  gold: "#3f82ff", goldLite: "#8fb4ff", goldDeep: "#2f6bff",   // brand blue (accent)
   paper: "#0a1022", paper2: "#0f1830",
   ink: "#eef1fa", inkSoft: "#bfc9e2", slate: "#8492b1",
   line: "#243049", white: "#141f3c",

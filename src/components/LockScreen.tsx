@@ -49,9 +49,9 @@ export function LockScreen() {
           {failed && <Text style={s.failed}>Authentication failed or cancelled. Try again.</Text>}
 
           <Pressable onPress={attempt} disabled={busy} style={({ pressed }) => [s.unlock, (busy || pressed) && { opacity: 0.85 }]}>
-            {busy ? <ActivityIndicator color={isDark ? "#16223a" : "#fff"} /> : (
+            {busy ? <ActivityIndicator color="#ffffff" /> : (
               <>
-                <Ionicons name="lock-open-outline" size={17} color={isDark ? "#16223a" : "#fff"} />
+                <Ionicons name="lock-open-outline" size={17} color="#ffffff" />
                 <Text style={s.unlockT}>Unlock</Text>
               </>
             )}
@@ -68,7 +68,7 @@ export function LockScreen() {
 
 function makeStyles(c: Palette) {
   const primaryBg = c.isDark ? c.gold : c.navy;
-  const primaryText = c.isDark ? "#16223a" : "#ffffff";
+  const primaryText = "#ffffff";
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: c.paper },
     fill: { flex: 1, justifyContent: "center" },

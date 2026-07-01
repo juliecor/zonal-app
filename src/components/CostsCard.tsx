@@ -147,7 +147,7 @@ function makeStyles(c: Palette) {
     head: { flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 14 },
     headIc: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: c.chip },
     title: { flex: 1, fontFamily: SERIF, fontSize: 16, fontWeight: "600", color: c.ink },
-    estTag: { backgroundColor: c.isDark ? "rgba(201,168,76,0.14)" : "#fbf2d8", borderRadius: 100, paddingHorizontal: 8, paddingVertical: 3 },
+    estTag: { backgroundColor: c.isDark ? "rgba(21,94,239,0.14)" : "#e8f0ff", borderRadius: 100, paddingHorizontal: 8, paddingVertical: 3 },
     estTagT: { fontSize: 8.5, fontWeight: "800", letterSpacing: 1, color: c.goldDeep },
 
     valRow: { flexDirection: "row", gap: 12, backgroundColor: c.cardAlt, borderWidth: 1, borderColor: c.isDark ? c.line : "#ece3cf", borderRadius: 12, padding: 12 },

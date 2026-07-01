@@ -169,9 +169,9 @@ export default function ReportScreen() {
             <Text style={s.imgT}>Share image</Text>
           </Pressable>
           <Pressable onPress={onDownload} disabled={downloading || !html} style={({ pressed }) => [s.downloadBtn, (downloading || !html || pressed) && { opacity: 0.6 }]}>
-            {downloading ? <ActivityIndicator color="#16223a" /> : (
+            {downloading ? <ActivityIndicator color="#ffffff" /> : (
               <>
-                <Ionicons name="download-outline" size={18} color="#16223a" />
+                <Ionicons name="download-outline" size={18} color="#ffffff" />
                 <Text style={s.downloadT}>Download PDF</Text>
               </>
             )}
@@ -211,7 +211,7 @@ function makeStyles(c: Palette) {
     imgBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: c.card, borderWidth: 1.5, borderColor: c.isDark ? c.goldLite : c.navy, borderRadius: 13, paddingVertical: 14, paddingHorizontal: 16 },
     imgT: { color: c.isDark ? c.goldLite : c.navy, fontWeight: "800", fontSize: 13.5 },
     downloadBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.gold, borderRadius: 13, paddingVertical: 14, shadowColor: c.goldDeep, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 7 },
-    downloadT: { color: "#16223a", fontWeight: "800", fontSize: 15 },
+    downloadT: { color: "#ffffff", fontWeight: "800", fontSize: 15 },
     offscreen: { position: "absolute", left: -10000, top: 0 },
   });
 }

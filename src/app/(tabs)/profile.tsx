@@ -28,7 +28,7 @@ function NightToggle() {
     <Pressable onPress={toggle} hitSlop={10}>
       <Animated.View style={[tg.track, track]}>
         <Animated.View style={[tg.knob, knob]}>
-          <Ionicons name={isDark ? "moon" : "sunny"} size={15} color={isDark ? "#e9ce80" : "#d99a1c"} />
+          <Ionicons name={isDark ? "moon" : "sunny"} size={15} color={isDark ? "#155eef" : "#d99a1c"} />
         </Animated.View>
       </Animated.View>
     </Pressable>
@@ -206,14 +206,14 @@ function makeStyles(c: Palette) {
     editProfileBtn: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 14, backgroundColor: c.chip, borderRadius: 100, paddingHorizontal: 16, paddingVertical: 9 },
     editProfileT: { fontSize: 12.5, fontWeight: "800", color: c.isDark ? c.goldLite : c.navy },
     avatar: { width: 68, height: 68, borderRadius: 34, alignItems: "center", justifyContent: "center", backgroundColor: c.goldLite },
-    avatarT: { color: "#16223a", fontWeight: "800", fontSize: 26, fontFamily: SERIF },
+    avatarT: { color: "#ffffff", fontWeight: "800", fontSize: 26, fontFamily: SERIF },
     name: { fontFamily: SERIF, fontSize: 20, fontWeight: "600", color: c.ink, marginTop: 12 },
     email: { fontSize: 12.5, color: c.slate, marginTop: 3 },
     roleChip: { marginTop: 10, backgroundColor: c.chip, borderRadius: 100, paddingHorizontal: 11, paddingVertical: 4 },
     roleT: { fontSize: 9.5, fontWeight: "800", color: c.isDark ? c.goldLite : c.navy, letterSpacing: 0.6 },
 
     apprCard: { marginTop: 14, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 16, padding: 14 },
-    apprIc: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: c.isDark ? "rgba(211,177,84,0.14)" : "#fbf2d8" },
+    apprIc: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: c.isDark ? "rgba(21,94,239,0.14)" : "#e8f0ff" },
     apprT: { fontSize: 14.5, fontWeight: "800", color: c.ink },
     apprSub: { fontSize: 11.5, color: c.slate, marginTop: 2 },
 
@@ -221,7 +221,7 @@ function makeStyles(c: Palette) {
     balLbl: { fontSize: 9, fontWeight: "800", letterSpacing: 1.2, color: c.goldDeep },
     balNum: { fontFamily: SERIF, fontSize: 30, fontWeight: "700", color: c.ink, marginTop: 3 },
     note: { fontSize: 11.5, color: c.slate, marginTop: 12, lineHeight: 17 },
-    reqBtn: { marginTop: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: c.isDark ? "rgba(201,168,76,0.4)" : c.navy, backgroundColor: c.card, borderRadius: 13, paddingVertical: 13 },
+    reqBtn: { marginTop: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: c.isDark ? "rgba(21,94,239,0.4)" : c.navy, backgroundColor: c.card, borderRadius: 13, paddingVertical: 13 },
     reqBtnT: { color: c.isDark ? c.goldLite : c.navy, fontWeight: "800", fontSize: 13.5 },
     adminBtn: { marginTop: 14, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 14, padding: 14 },
     adminIc: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: c.chip },

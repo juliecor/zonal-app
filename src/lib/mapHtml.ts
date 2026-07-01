@@ -14,9 +14,9 @@ export function mapHtml(key: string, night = false): string {
     border:1px solid rgba(12,20,48,.08);white-space:nowrap;cursor:pointer}
   .tag::after{content:"";position:absolute;left:50%;bottom:-4px;width:8px;height:8px;background:#fff;
     transform:translateX(-50%) rotate(45deg);border-right:1px solid rgba(12,20,48,.08);border-bottom:1px solid rgba(12,20,48,.08)}
-  .tag.sel{background:linear-gradient(150deg,#e6c976,#c9a84c);color:#16223a;z-index:60;
-    box-shadow:0 11px 22px -6px rgba(201,168,76,.75);font-size:12.5px;padding:5px 11px}
-  .tag.sel::after{background:#c9a84c;border-color:transparent}
+  .tag.sel{background:linear-gradient(150deg,#4d8bff,#155eef);color:#ffffff;z-index:60;
+    box-shadow:0 11px 22px -6px rgba(21,94,239,.75);font-size:12.5px;padding:5px 11px}
+  .tag.sel::after{background:#155eef;border-color:transparent}
 </style></head><body><div id="map"></div>
 <script>
   var map, overlay, PINS=[], LAYERS={};
@@ -44,14 +44,14 @@ export function mapHtml(key: string, night = false): string {
     {elementType:"labels.text.stroke",stylers:[{color:"#0a1022"}]},
     {elementType:"labels.text.fill",stylers:[{color:"#8492b1"}]},
     {featureType:"administrative",elementType:"geometry",stylers:[{color:"#2a3556"}]},
-    {featureType:"administrative.locality",elementType:"labels.text.fill",stylers:[{color:"#c5b074"}]},
+    {featureType:"administrative.locality",elementType:"labels.text.fill",stylers:[{color:"#8fb4ff"}]},
     {featureType:"poi",elementType:"labels.text.fill",stylers:[{color:"#7d89a8"}]},
     {featureType:"poi.park",elementType:"geometry",stylers:[{color:"#13243a"}]},
     {featureType:"road",elementType:"geometry",stylers:[{color:"#1c2746"}]},
     {featureType:"road",elementType:"geometry.stroke",stylers:[{color:"#141d36"}]},
     {featureType:"road",elementType:"labels.text.fill",stylers:[{color:"#9aa6c4"}]},
     {featureType:"road.highway",elementType:"geometry",stylers:[{color:"#2b3a5e"}]},
-    {featureType:"road.highway",elementType:"labels.text.fill",stylers:[{color:"#d3b154"}]},
+    {featureType:"road.highway",elementType:"labels.text.fill",stylers:[{color:"#8fa6d6"}]},
     {featureType:"transit",elementType:"labels.text.fill",stylers:[{color:"#7d89a8"}]},
     {featureType:"water",elementType:"geometry",stylers:[{color:"#070c1a"}]},
     {featureType:"water",elementType:"labels.text.fill",stylers:[{color:"#3b4a6c"}]}

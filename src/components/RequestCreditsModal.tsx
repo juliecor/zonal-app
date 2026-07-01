@@ -106,9 +106,9 @@ export function RequestCreditsModal({ visible, onClose }: { visible: boolean; on
               {!!err && <View style={s.err}><Ionicons name="alert-circle" size={15} color={c.red} /><Text style={s.errT}>{err}</Text></View>}
 
               <Pressable onPress={submit} disabled={busy} style={({ pressed }) => [s.primary, (busy || pressed) && { opacity: 0.85 }]}>
-                {busy ? <ActivityIndicator color="#16223a" /> : (
+                {busy ? <ActivityIndicator color="#ffffff" /> : (
                   <>
-                    <Ionicons name="paper-plane-outline" size={17} color="#16223a" />
+                    <Ionicons name="paper-plane-outline" size={17} color="#ffffff" />
                     <Text style={s.primaryT}>Send request for {quantity} credits</Text>
                   </>
                 )}
@@ -162,7 +162,7 @@ function makeStyles(c: Palette) {
     errT: { color: c.red, fontSize: 12.5, fontWeight: "600", flex: 1 },
 
     primary: { marginTop: 22, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.gold, borderRadius: 13, paddingVertical: 15, shadowColor: c.goldDeep, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 7 },
-    primaryT: { color: "#16223a", fontWeight: "800", fontSize: 15 },
+    primaryT: { color: "#ffffff", fontWeight: "800", fontSize: 15 },
 
     doneCard: { alignItems: "center", paddingVertical: 24 },
     doneIc: { width: 60, height: 60, borderRadius: 30, alignItems: "center", justifyContent: "center", backgroundColor: c.isDark ? "rgba(34,197,94,0.16)" : "#e7f6ee" },

@@ -159,7 +159,7 @@ export default function PropertyScreen() {
               <Text style={s.reportT}>View Property Report</Text>
               <Text style={s.reportSub}>Branded PDF · preview, download & share</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#16223a" />
+            <Ionicons name="chevron-forward" size={20} color="#ffffff" />
           </Pressable>
 
           <Pressable onPress={askAI} style={s.ai}>
@@ -229,7 +229,7 @@ function makeStyles(c: Palette) {
     hazLoad: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 16, padding: 16 },
     report: { marginTop: 16, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.gold, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16, shadowColor: c.goldDeep, shadowOpacity: 0.45, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 7 },
     reportIc: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.6)" },
-    reportT: { color: "#16223a", fontSize: 15.5, fontWeight: "800" },
+    reportT: { color: "#ffffff", fontSize: 15.5, fontWeight: "800" },
     reportSub: { color: "#3a3520", fontSize: 11, fontWeight: "600", marginTop: 2 },
     ai: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.navy, borderRadius: 13, paddingVertical: 13 },
     aiSpark: { color: c.goldLite, fontSize: 14 },

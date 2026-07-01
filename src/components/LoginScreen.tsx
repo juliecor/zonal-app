@@ -289,8 +289,8 @@ export function LoginScreen() {
 }
 
 function makeStyles(c: Palette) {
-  const primaryBg = c.isDark ? c.gold : c.navy;          // gold pops on dark, navy is crisp on light
-  const primaryText = c.isDark ? "#16223a" : "#ffffff";
+  const primaryBg = c.gold;          // brand blue CTA in both modes, consistent with every other CTA
+  const primaryText = "#ffffff";
   const link = c.isDark ? c.goldLite : c.navy;
   const fieldBg = c.isDark ? c.field : "#ffffff";
   return StyleSheet.create({

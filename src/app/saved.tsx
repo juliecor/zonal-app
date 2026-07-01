@@ -90,7 +90,7 @@ export default function SavedScreen() {
                   </Pressable>
                   <View style={s.cardActions}>
                     <Pressable onPress={() => toggleSel(l)} hitSlop={8} style={[s.checkbox, on && { backgroundColor: c.gold, borderColor: c.gold }]}>
-                      {on && <Ionicons name="checkmark" size={13} color="#16223a" />}
+                      {on && <Ionicons name="checkmark" size={13} color="#ffffff" />}
                     </Pressable>
                     <Pressable onPress={() => savedStore.remove(l)} hitSlop={8} style={s.removeBtn}>
                       <Ionicons name="heart" size={18} color={c.gold} />
@@ -105,7 +105,7 @@ export default function SavedScreen() {
 
       {sel.size >= 2 && !comparing && (
         <Pressable style={s.cmpBtn} onPress={() => setComparing(true)}>
-          <Ionicons name="git-compare-outline" size={17} color="#16223a" />
+          <Ionicons name="git-compare-outline" size={17} color="#ffffff" />
           <Text style={s.cmpBtnT}>Compare {sel.size} selected</Text>
         </Pressable>
       )}
@@ -154,6 +154,6 @@ function makeStyles(c: Palette) {
       backgroundColor: c.gold, borderRadius: 14, paddingVertical: 15,
       shadowColor: c.goldDeep, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 8,
     },
-    cmpBtnT: { color: "#16223a", fontWeight: "800", fontSize: 14.5 },
+    cmpBtnT: { color: "#ffffff", fontWeight: "800", fontSize: 14.5 },
   });
 }

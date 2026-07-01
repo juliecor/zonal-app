@@ -112,7 +112,7 @@ export default function EditProfileScreen() {
                 <View style={s.avatar}><Text style={s.avatarT}>{initials}</Text></View>
               )}
               <View style={s.camBadge}>
-                {uploading ? <ActivityIndicator color="#16223a" size="small" /> : <Ionicons name="camera" size={15} color="#16223a" />}
+                {uploading ? <ActivityIndicator color="#ffffff" size="small" /> : <Ionicons name="camera" size={15} color="#ffffff" />}
               </View>
             </Pressable>
             <Pressable onPress={changePhoto}><Text style={s.changeT}>Change photo</Text></Pressable>
@@ -132,7 +132,7 @@ export default function EditProfileScreen() {
           <Text style={s.hint}>Email can't be changed here. Contact your admin if it's wrong.</Text>
 
           <Pressable onPress={save} disabled={saving} style={({ pressed }) => [s.saveBtn, (saving || pressed) && { opacity: 0.7 }]}>
-            {saving ? <ActivityIndicator color="#16223a" /> : <Text style={s.saveT}>Save changes</Text>}
+            {saving ? <ActivityIndicator color="#ffffff" /> : <Text style={s.saveT}>Save changes</Text>}
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -167,7 +167,7 @@ function makeStyles(c: Palette) {
     avatarWrap: { alignItems: "center", gap: 8, marginBottom: 18 },
     avatarBtn: { width: 104, height: 104 },
     avatar: { width: 104, height: 104, borderRadius: 52, backgroundColor: c.goldLite, alignItems: "center", justifyContent: "center", overflow: "hidden" },
-    avatarT: { color: "#16223a", fontWeight: "800", fontSize: 34 },
+    avatarT: { color: "#ffffff", fontWeight: "800", fontSize: 34 },
     camBadge: { position: "absolute", right: -2, bottom: -2, width: 32, height: 32, borderRadius: 16, backgroundColor: c.gold, alignItems: "center", justifyContent: "center", borderWidth: 3, borderColor: c.paper },
     changeT: { color: c.isDark ? c.goldLite : c.navy, fontSize: 14, fontWeight: "800", marginTop: 4 },
     removeT: { color: "#c0392b", fontSize: 12.5, fontWeight: "600" },
@@ -183,6 +183,6 @@ function makeStyles(c: Palette) {
     hint: { fontSize: 11.5, color: c.slate, marginTop: 6, lineHeight: 16 },
 
     saveBtn: { marginTop: 24, alignItems: "center", justifyContent: "center", backgroundColor: c.gold, borderRadius: 14, paddingVertical: 15, shadowColor: c.goldDeep, shadowOpacity: 0.5, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 7 },
-    saveT: { color: "#16223a", fontWeight: "800", fontSize: 15 },
+    saveT: { color: "#ffffff", fontWeight: "800", fontSize: 15 },
   });
 }

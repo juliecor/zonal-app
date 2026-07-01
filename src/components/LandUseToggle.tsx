@@ -35,7 +35,7 @@ function makeStyles(c: Palette) {
     h: { fontSize: 8.5, letterSpacing: 1.4, color: c.slate, fontWeight: "800", marginBottom: 7 },
     row: { flexDirection: "row", gap: 6 },
     lu: { flex: 1, borderRadius: 11, borderWidth: 1.4, borderColor: c.line, backgroundColor: c.card, paddingVertical: 8, paddingHorizontal: 4, alignItems: "center" },
-    on: { borderColor: c.gold, backgroundColor: c.isDark ? "rgba(201,168,76,0.14)" : "#fbf2d8" },
+    on: { borderColor: c.gold, backgroundColor: c.isDark ? "rgba(21,94,239,0.14)" : "#e8f0ff" },
     k: { fontSize: 9, fontWeight: "800", color: c.slate, letterSpacing: 0.3 },
     kOn: { color: c.isDark ? c.goldLite : c.navy },
     p: { fontFamily: SERIF, fontSize: 13, fontWeight: "700", color: c.ink, marginTop: 2 },

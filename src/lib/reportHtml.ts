@@ -1,5 +1,5 @@
 // Branded BIR Zonal Property Report — HTML mirror of the website's PDF report
-// (navy #1e3a8a + gold #c9a84c, FH header band, zonal-value box, signature, disclaimer).
+// (navy #1e3a8a + blue #155eef, FH header band, zonal-value box, signature, disclaimer).
 // One HTML string used for BOTH the in-app WebView preview AND the expo-print PDF.
 
 import type { Hazard } from "@/lib/hazards";
@@ -20,7 +20,7 @@ export interface ReportData {
   preparedBy: string;
 }
 
-const NAVY = "#1e3a8a", GOLD = "#c9a84c", INK = "#16223a";
+const NAVY = "#1e3a8a", GOLD = "#155eef", INK = "#16223a";
 
 const grp = (s: string) => s.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 function money(n: number): string {
@@ -66,7 +66,7 @@ export function buildReportHtml(d: ReportData): string {
   const r = 34, C = 2 * Math.PI * r, dash = Math.max(0, Math.min(1, d.score / 3)) * C;
   const gauge = `
     <svg width="80" height="80" viewBox="0 0 84 84">
-      <circle cx="42" cy="42" r="${r}" fill="none" stroke="#ece6d6" stroke-width="9"/>
+      <circle cx="42" cy="42" r="${r}" fill="none" stroke="#dbe5fb" stroke-width="9"/>
       <circle cx="42" cy="42" r="${r}" fill="none" stroke="${d.riskColor}" stroke-width="9" stroke-linecap="round"
         stroke-dasharray="${dash.toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 42 42)"/>
       <text x="42" y="48" text-anchor="middle" font-size="21" font-weight="700" fill="${INK}" font-family="Georgia,serif">${d.score.toFixed(1)}</text>
@@ -107,14 +107,14 @@ export function buildReportHtml(d: ReportData): string {
   .page { max-width: 820px; margin: 0 auto; }
   .band { background:${NAVY}; color:#fff; padding:22px 32px; display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
   .brand { font-size:22px; font-weight:800; letter-spacing:-0.3px; }
-  .eyebrow { color:#e6cd80; font-size:10.5px; font-weight:800; letter-spacing:2px; margin-top:5px; }
+  .eyebrow { color:#93b4ff; font-size:10.5px; font-weight:800; letter-spacing:2px; margin-top:5px; }
   .date { font-size:11.5px; color:#cdd7f1; text-align:right; white-space:nowrap; }
   .goldrule { height:3px; background:${GOLD}; }
   .body { padding: 24px 32px 0; }
   .label { font-size:9.5px; letter-spacing:1.5px; font-weight:800; color:#8a93a6; text-transform:uppercase; }
   .loc { font-size:20px; font-weight:700; color:${INK}; margin-top:6px; font-family:Georgia,serif; }
   .valbox { background:${NAVY}; border-radius:14px; padding:16px 18px; margin-top:18px; display:flex; justify-content:space-between; align-items:center; gap:14px; }
-  .vlabel { color:#e6cd80; font-size:9.5px; letter-spacing:1.5px; font-weight:800; }
+  .vlabel { color:#93b4ff; font-size:9.5px; letter-spacing:1.5px; font-weight:800; }
   .vnum { color:#fff; font-size:25px; font-weight:800; font-family:Georgia,serif; margin-top:5px; letter-spacing:-0.3px; }
   .vest { color:#c8d3f0; font-size:10.5px; margin-top:5px; }
   .vcls { text-align:right; }
@@ -149,7 +149,7 @@ export function buildReportHtml(d: ReportData): string {
   .sigCap { font-size:8.5px; color:#8a93a6; letter-spacing:1.2px; text-transform:uppercase; margin-top:3px; }
   .disc { margin-top:26px; font-size:9px; color:#8a93a6; line-height:1.55; border-top:1px solid #e6e1d5; padding-top:12px; }
   .foot { background:${INK}; color:#cdd6ea; padding:13px 32px; display:flex; justify-content:space-between; align-items:center; font-size:9.5px; margin-top:22px; gap:12px; }
-  .foot b { color:#e6cd80; font-weight:700; }
+  .foot b { color:#93b4ff; font-weight:700; }
 </style></head>
 <body>
   <div class="page">

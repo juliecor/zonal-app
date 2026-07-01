@@ -126,13 +126,13 @@ export default function NearbyScreen() {
           <Ionicons name="location-outline" size={30} color={c.slate} />
           <Text style={s.cTitle}>Location is off</Text>
           <Text style={s.dim}>Allow location access so we can read the zonal value where you are.</Text>
-          <Pressable onPress={locate} style={s.cta}><Ionicons name="navigate" size={16} color="#16223a" /><Text style={s.ctaT}>Enable location</Text></Pressable>
+          <Pressable onPress={locate} style={s.cta}><Ionicons name="navigate" size={16} color="#ffffff" /><Text style={s.ctaT}>Enable location</Text></Pressable>
         </View>
       ) : phase === "error" ? (
         <View style={s.center}>
           <Ionicons name="alert-circle-outline" size={30} color={c.slate} />
           <Text style={s.dim}>Couldn&apos;t get your location. Make sure GPS is on, then try again.</Text>
-          <Pressable onPress={locate} style={s.cta}><Ionicons name="refresh" size={16} color="#16223a" /><Text style={s.ctaT}>Try again</Text></Pressable>
+          <Pressable onPress={locate} style={s.cta}><Ionicons name="refresh" size={16} color="#ffffff" /><Text style={s.ctaT}>Try again</Text></Pressable>
         </View>
       ) : info ? (
         <ScrollView style={s.body} contentContainerStyle={{ padding: 14, paddingBottom: 40 }}>
@@ -168,7 +168,7 @@ export default function NearbyScreen() {
               <Text style={s.reportT}>View Property Report</Text>
               <Text style={s.reportSub}>Branded PDF · preview, download &amp; share</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#16223a" />
+            <Ionicons name="chevron-forward" size={20} color="#ffffff" />
           </Pressable>
           <Pressable onPress={askAI} style={s.aiFull}>
             <Text style={s.aiSpark}>✦</Text><Text style={s.aiT}>Ask the AI about this spot</Text>
@@ -227,7 +227,7 @@ function makeStyles(c: Palette) {
     refresh: { width: 34, height: 34, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.12)" },
 
     center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 36 },
-    bigIcon: { width: 56, height: 56, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: c.isDark ? "rgba(211,177,84,0.14)" : "#fbf2d8" },
+    bigIcon: { width: 56, height: 56, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: c.isDark ? "rgba(21,94,239,0.14)" : "#e8f0ff" },
     cTitle: { fontFamily: SERIF, fontSize: 18, fontWeight: "600", color: c.ink, marginTop: 4 },
     dim: { color: c.slate, fontSize: 13, textAlign: "center", lineHeight: 19 },
 
@@ -243,10 +243,10 @@ function makeStyles(c: Palette) {
     hazLoading: { flexDirection: "row", alignItems: "center", gap: 10 },
 
     cta: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, backgroundColor: c.gold, borderRadius: 13, paddingVertical: 13, paddingHorizontal: 16, marginTop: 16, shadowColor: c.goldDeep, shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
-    ctaT: { fontSize: 13, fontWeight: "800", color: "#16223a" },
+    ctaT: { fontSize: 13, fontWeight: "800", color: "#ffffff" },
     report: { marginTop: 16, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: c.gold, borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16, shadowColor: c.goldDeep, shadowOpacity: 0.45, shadowRadius: 16, shadowOffset: { width: 0, height: 9 }, elevation: 7 },
     reportIc: { width: 38, height: 38, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.6)" },
-    reportT: { color: "#16223a", fontSize: 15.5, fontWeight: "800" },
+    reportT: { color: "#ffffff", fontSize: 15.5, fontWeight: "800" },
     reportSub: { color: "#3a3520", fontSize: 11, fontWeight: "600", marginTop: 2 },
     aiFull: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: c.navy, borderRadius: 13, paddingVertical: 13 },
     aiSpark: { color: c.goldLite, fontSize: 13 },

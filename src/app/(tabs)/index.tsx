@@ -405,7 +405,7 @@ export default function MapScreen() {
 
           <Pressable onPress={openReport} style={st.cta}>
             <Text style={st.ctaT}>View full details &amp; report</Text>
-            <Ionicons name="arrow-forward" size={16} color="#16223a" />
+            <Ionicons name="arrow-forward" size={16} color="#ffffff" />
           </Pressable>
         </Animated.View>
       )}
@@ -432,7 +432,7 @@ function makeStyles(c: Palette) {
     search: {
       flex: 1, flexDirection: "row", alignItems: "center", gap: 8,
       backgroundColor: frost, borderRadius: 100, paddingHorizontal: 14, paddingVertical: 11,
-      borderWidth: 1, borderColor: "rgba(201,168,76,0.3)",
+      borderWidth: 1, borderColor: "rgba(21,94,239,0.3)",
       shadowColor: c.shadow, shadowOpacity: 0.22, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6,
     },
     searchInput: { flex: 1, fontSize: 13.5, color: c.ink, padding: 0 },
@@ -441,15 +441,15 @@ function makeStyles(c: Palette) {
       backgroundColor: c.goldLite, borderWidth: 2, borderColor: c.isDark ? c.card : "#fff",
       shadowColor: c.shadow, shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5,
     },
-    avaT: { color: "#16223a", fontWeight: "800", fontSize: 12 },
+    avaT: { color: "#ffffff", fontWeight: "800", fontSize: 12 },
     avaImg: { width: "100%", height: "100%" },
     iconBtn: {
       width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center",
-      backgroundColor: frost, borderWidth: 1, borderColor: "rgba(201,168,76,0.3)",
+      backgroundColor: frost, borderWidth: 1, borderColor: "rgba(21,94,239,0.3)",
       shadowColor: c.shadow, shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5,
     },
     badge: { position: "absolute", top: -3, right: -3, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: c.gold, alignItems: "center", justifyContent: "center", paddingHorizontal: 4, borderWidth: 1.5, borderColor: c.isDark ? c.card : "#fff" },
-    badgeT: { fontSize: 9.5, fontWeight: "800", color: "#16223a" },
+    badgeT: { fontSize: 9.5, fontWeight: "800", color: "#ffffff" },
     recH: { fontSize: 8.5, letterSpacing: 1.2, color: c.slate, fontWeight: "800", paddingHorizontal: 14, paddingTop: 10, paddingBottom: 2 },
 
     sugs: {
@@ -485,8 +485,8 @@ function makeStyles(c: Palette) {
     hazRowT: { fontSize: 12.5, color: c.inkSoft, fontWeight: "600" },
 
     loadWrap: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
-    loadCard: { flexDirection: "row", alignItems: "center", gap: 13, backgroundColor: c.card, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 14, borderWidth: 1, borderColor: "rgba(201,168,76,0.3)", shadowColor: c.shadow, shadowOpacity: 0.28, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 14 },
-    loadIcon: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: c.isDark ? "rgba(211,177,84,0.14)" : "#fbf2d8" },
+    loadCard: { flexDirection: "row", alignItems: "center", gap: 13, backgroundColor: c.card, borderRadius: 16, paddingHorizontal: 18, paddingVertical: 14, borderWidth: 1, borderColor: "rgba(21,94,239,0.3)", shadowColor: c.shadow, shadowOpacity: 0.28, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 14 },
+    loadIcon: { width: 36, height: 36, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: c.isDark ? "rgba(21,94,239,0.14)" : "#e8f0ff" },
     loadTitle: { fontFamily: SERIF, fontSize: 14.5, fontWeight: "700", color: c.ink },
     loadSub: { fontSize: 10.5, color: c.slate, marginTop: 2, fontWeight: "600" },
 
@@ -520,6 +520,6 @@ function makeStyles(c: Palette) {
       backgroundColor: c.gold, borderRadius: 13, paddingVertical: 13,
       shadowColor: c.goldDeep, shadowOpacity: 0.5, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6,
     },
-    ctaT: { fontSize: 13, fontWeight: "800", color: "#16223a" },
+    ctaT: { fontSize: 13, fontWeight: "800", color: "#ffffff" },
   });
 }
