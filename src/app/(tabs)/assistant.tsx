@@ -326,7 +326,7 @@ export default function AssistantScreen() {
         {loading && (
           <View style={s.typing}>
             <Image source={AI_HEAD} style={s.botMark} contentFit="contain" />
-            <View style={s.typingBubble}><ActivityIndicator color={c.goldDeep} size="small" /><Text style={s.typingT}>Analyzing…</Text></View>
+            <View style={s.typingBubble}><ActivityIndicator color="#155EEF" size="small" /><Text style={s.typingT}>Analyzing…</Text></View>
           </View>
         )}
       </ScrollView>
@@ -355,15 +355,16 @@ export default function AssistantScreen() {
 }
 
 function makeStyles(c: Palette) {
+  const brandBlue = "#155EEF", blueDeep = "#0f49c4"; // matches the AI mascot / logo
   return StyleSheet.create({
     root: { flex: 1, backgroundColor: c.paper },
     head: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 15, paddingVertical: 8 },
     headLogo: { width: 46, height: 46 },
     langRow: { flexDirection: "row", gap: 4, backgroundColor: "rgba(255,255,255,0.10)", borderRadius: 100, padding: 3 },
     langPill: { paddingHorizontal: 11, paddingVertical: 5, borderRadius: 100 },
-    langPillOn: { backgroundColor: c.gold },
+    langPillOn: { backgroundColor: brandBlue },
     langPillT: { color: "#cdd6ee", fontSize: 11.5, fontWeight: "700" },
-    langPillTOn: { color: "#16223a" },
+    langPillTOn: { color: "#ffffff" },
     quickWrap: { flexGrow: 0, backgroundColor: c.paper, borderTopWidth: 1, borderTopColor: c.line },
     quickRow: { paddingHorizontal: 12, paddingVertical: 8, gap: 8 },
     quickChip: { backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 100, paddingHorizontal: 13, paddingVertical: 8 },
@@ -375,14 +376,14 @@ function makeStyles(c: Palette) {
 
     feed: { flex: 1, backgroundColor: c.paper },
     welcome: { paddingVertical: 8 },
-    wBadge: { alignSelf: "flex-start", backgroundColor: c.isDark ? "rgba(201,168,76,0.14)" : "#fbf2d8", borderWidth: 1, borderColor: "rgba(201,168,76,0.4)", borderRadius: 100, paddingHorizontal: 11, paddingVertical: 5, marginBottom: 14 },
-    wBadgeT: { fontSize: 9.5, fontWeight: "800", letterSpacing: 1, color: c.goldDeep },
+    wBadge: { alignSelf: "flex-start", backgroundColor: c.isDark ? "rgba(21,94,239,0.16)" : "#e8f0ff", borderWidth: 1, borderColor: "rgba(21,94,239,0.35)", borderRadius: 100, paddingHorizontal: 11, paddingVertical: 5, marginBottom: 14 },
+    wBadgeT: { fontSize: 9.5, fontWeight: "800", letterSpacing: 1, color: brandBlue },
     wTitle: { fontFamily: SERIF, fontSize: 22, color: c.ink, fontWeight: "700", lineHeight: 27 },
     wSub: { fontSize: 13, color: c.slate, lineHeight: 20, marginTop: 9 },
     chips: { marginTop: 18, gap: 9 },
     chip: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderRadius: 13, paddingHorizontal: 14, paddingVertical: 13, shadowColor: c.shadow, shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 1 },
     chipT: { color: c.inkSoft, fontSize: 13, fontWeight: "600", flex: 1 },
-    chipArrow: { color: c.gold, fontSize: 15, fontWeight: "800" },
+    chipArrow: { color: brandBlue, fontSize: 15, fontWeight: "800" },
     tip: { fontSize: 11.5, color: c.slate, marginTop: 16, fontStyle: "italic", textAlign: "center" },
 
     typing: { flexDirection: "row", alignItems: "flex-end", gap: 7 },
@@ -392,7 +393,7 @@ function makeStyles(c: Palette) {
 
     inbar: { flexDirection: "row", alignItems: "flex-end", gap: 9, paddingHorizontal: 12, paddingTop: 10, paddingBottom: Platform.OS === "ios" ? 26 : 12, backgroundColor: c.card, borderTopWidth: 1, borderTopColor: c.line },
     input: { flex: 1, maxHeight: 110, backgroundColor: c.field, borderWidth: 1, borderColor: c.line, borderRadius: 14, paddingHorizontal: 14, paddingVertical: Platform.OS === "ios" ? 12 : 9, color: c.ink, fontSize: 14 },
-    send: { width: 42, height: 42, borderRadius: 12, backgroundColor: c.gold, alignItems: "center", justifyContent: "center", shadowColor: c.goldDeep, shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
-    sendT: { color: "#16223a", fontWeight: "800", fontSize: 19 },
+    send: { width: 42, height: 42, borderRadius: 12, backgroundColor: brandBlue, alignItems: "center", justifyContent: "center", shadowColor: blueDeep, shadowOpacity: 0.5, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 5 },
+    sendT: { color: "#ffffff", fontWeight: "800", fontSize: 19 },
   });
 }

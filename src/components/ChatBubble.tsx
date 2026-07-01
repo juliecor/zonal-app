@@ -100,20 +100,21 @@ export function ChatBubble({ role, text }: { role: "user" | "assistant"; text: s
 }
 
 function makeStyles(c: Palette) {
-  const accent = c.isDark ? c.goldLite : c.navy;
+  const brandBlue = "#155EEF";                    // matches the AI mascot / logo
+  const accent = c.isDark ? "#8fb4ff" : brandBlue; // ₱ amounts, headings, list markers
   return StyleSheet.create({
     wrap: { width: "100%", flexDirection: "row", alignItems: "flex-end", gap: 7 },
     meWrap: { justifyContent: "flex-end" },
     aiWrap: { justifyContent: "flex-start" },
     botMark: { width: 28, height: 28, marginBottom: 2 },
     bub: { maxWidth: "84%", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 11 },
-    me: { backgroundColor: c.gold, borderBottomRightRadius: 5 },
+    me: { backgroundColor: brandBlue, borderBottomRightRadius: 5 },
     ai: {
       backgroundColor: c.card, borderWidth: 1, borderColor: c.line, borderBottomLeftRadius: 5,
       shadowColor: c.shadow, shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 1,
     },
     t: { fontSize: 14, lineHeight: 21, color: c.ink },
-    tMe: { color: "#16223a", fontWeight: "600" },
+    tMe: { color: "#ffffff", fontWeight: "600" },
 
     // rich blocks
     firstBlock: { marginTop: 0 },
@@ -122,7 +123,7 @@ function makeStyles(c: Palette) {
     money: { fontWeight: "800", color: accent },
     head: { fontSize: 14.5, fontWeight: "800", color: accent, marginTop: 13, marginBottom: 1, letterSpacing: 0.1 },
     li: { flexDirection: "row", marginTop: 6, alignItems: "flex-start" },
-    marker: { width: 22, fontSize: 14, lineHeight: 21, fontWeight: "800", color: c.isDark ? c.goldLite : c.goldDeep },
+    marker: { width: 22, fontSize: 14, lineHeight: 21, fontWeight: "800", color: accent },
     liText: { flex: 1 },
   });
 }
