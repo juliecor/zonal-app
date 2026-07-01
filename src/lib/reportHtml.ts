@@ -87,13 +87,14 @@ export function buildReportHtml(d: ReportData): string {
   const costsBlock = costs ? `
     <div class="section">
       <div class="h2">Estimated Transaction Costs</div><div class="h2rule"></div>
-      <div class="costnote">Illustrative for a ${sqm} sqm lot at this zonal value (${php(costs.price)} base). Taxes are computed on the higher of the selling price or the BIR zonal value; transfer tax and fees vary by LGU.</div>
+      <div class="costnote">Illustrative for a ${sqm} sqm lot at this zonal value (${php(costs.price)} base). Taxes are computed on the higher of the selling price or the BIR zonal value; transfer tax and fees vary by LGU. The broker's professional fee (commission) is customary (~5% for land), seller-paid and negotiable.</div>
       <table class="costs">
         <tr><td>Capital Gains Tax <span>6% · seller</span></td><td>${php(costs.cgt)}</td></tr>
         <tr><td>Documentary Stamp Tax <span>1.5% · buyer</span></td><td>${php(costs.dst)}</td></tr>
         <tr><td>Transfer Tax <span>0.75% · buyer</span></td><td>${php(costs.transferTax)}</td></tr>
         <tr><td>Registration Fee <span>~0.25% · buyer</span></td><td>${php(costs.registrationFee)}</td></tr>
-        <tr class="tot"><td>Total taxes &amp; fees</td><td>${php(costs.totalFees)}</td></tr>
+        <tr><td>Broker's Professional Fee <span>${Math.round(costs.brokerRate * 100)}% · seller · customary</span></td><td>${php(costs.brokerFee)}</td></tr>
+        <tr class="tot"><td>Total transaction costs</td><td>${php(costs.totalFees)}</td></tr>
         <tr><td>Est. monthly amortization <span>80% loan · 6.5% · 20 yrs</span></td><td>${php(costs.monthlyAmortization)}<small>/mo</small></td></tr>
       </table>
     </div>` : "";

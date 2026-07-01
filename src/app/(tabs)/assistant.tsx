@@ -91,7 +91,8 @@ function ctxCostReference(ctx: any): string {
     `• Documentary Stamp Tax (1.5%, buyer): ${p(c.dst)}\n` +
     `• Transfer Tax (0.75%, buyer): ${p(c.transferTax)}\n` +
     `• Registration fee (~0.25%, buyer): ${p(c.registrationFee)}\n` +
-    `• Total taxes & fees: ${p(c.totalFees)}\n` +
+    `• Broker's professional fee (${Math.round(c.brokerRate * 100)}%, seller, customary/negotiable): ${p(c.brokerFee)}\n` +
+    `• Total transaction costs (incl. broker's fee): ${p(c.totalFees)}\n` +
     `• Monthly amortization (80% loan, 6.5% p.a., 20 yrs): ${p(c.monthlyAmortization)}/mo\n` +
     `Scale value/taxes linearly with area; recompute for any down-payment/rate/term the user gives.]`
   );

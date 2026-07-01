@@ -8,6 +8,7 @@ export const DST_RATE = 0.015;      // Documentary Stamp Tax — NIRC Sec. 196, 
 export const REG_RATE = 0.0025;     // Registry of Deeds registration — ~0.25% (LRA schedule; estimate)
 export const TRANSFER_RATE_PROVINCE = 0.005;  // LGC Sec. 135 (province, ≤0.5%)
 export const TRANSFER_RATE_CITY = 0.0075;     // LGC Sec. 151 (city / Metro Manila, ≤0.75%)
+export const BROKER_RATE = 0.05;    // Broker's professional fee (commission) — customary ~3–5% (land ~5%), SELLER-paid, negotiable; NOT a statutory tax
 export const SEF_RATE = 0.01;       // Special Education Fund — LGC Sec. 235
 export const VAT_RESIDENTIAL_EXEMPT_THRESHOLD = 3_600_000; // RR 1-2024 (house-and-lot/dwelling)
 
@@ -15,6 +16,7 @@ export interface CostInput {
   price: number;             // tax base (use the higher-of in practice)
   transferRate?: number;     // default city 0.75%
   withRegistration?: boolean; // default true
+  brokerRate?: number;       // broker's commission; default 5%, pass 0 to exclude
   downPct?: number;          // default 20
   annualRatePct?: number;    // default 6.5
   termYears?: number;        // default 20
@@ -22,11 +24,11 @@ export interface CostInput {
 
 export interface CostBreakdown {
   price: number;
-  cgt: number; dst: number; transferTax: number; registrationFee: number;
+  cgt: number; dst: number; transferTax: number; registrationFee: number; brokerFee: number;
   buyerFees: number; sellerFees: number; totalFees: number;
   downPayment: number; loanPrincipal: number; monthlyAmortization: number; totalInterest: number;
   cashIfFinanced: number; cashIfFull: number;
-  transferRate: number; downPct: number; annualRatePct: number; termYears: number;
+  transferRate: number; brokerRate: number; downPct: number; annualRatePct: number; termYears: number;
 }
 
 export function estimatedValue(zonalPerSqm: number, areaSqm: number): number {
@@ -52,6 +54,7 @@ export function computeCosts(input: CostInput): CostBreakdown {
   const price = Math.max(0, input.price || 0);
   const transferRate = input.transferRate ?? TRANSFER_RATE_CITY;
   const withReg = input.withRegistration ?? true;
+  const brokerRate = input.brokerRate ?? BROKER_RATE;
   const downPct = input.downPct ?? 20;
   const annualRatePct = input.annualRatePct ?? 6.5;
   const termYears = input.termYears ?? 20;
@@ -60,9 +63,10 @@ export function computeCosts(input: CostInput): CostBreakdown {
   const dst = dstExact(price);
   const transferTax = price * transferRate;
   const registrationFee = withReg ? price * REG_RATE : 0;
+  const brokerFee = price * brokerRate;                     // seller-paid professional fee (commission)
   const buyerFees = dst + transferTax + registrationFee;
-  const sellerFees = cgt;
-  const totalFees = cgt + dst + transferTax + registrationFee;
+  const sellerFees = cgt + brokerFee;                       // seller pays CGT + the broker's commission
+  const totalFees = buyerFees + sellerFees;                 // all transaction costs (taxes, fees & commission)
 
   const downPayment = price * (downPct / 100);
   const loanPrincipal = Math.max(0, price - downPayment);
@@ -70,10 +74,10 @@ export function computeCosts(input: CostInput): CostBreakdown {
   const totalInterest = Math.max(0, monthly * termYears * 12 - loanPrincipal);
 
   return {
-    price, cgt, dst, transferTax, registrationFee, buyerFees, sellerFees, totalFees,
+    price, cgt, dst, transferTax, registrationFee, brokerFee, buyerFees, sellerFees, totalFees,
     downPayment, loanPrincipal, monthlyAmortization: monthly, totalInterest,
     cashIfFinanced: downPayment + buyerFees, cashIfFull: price + buyerFees,
-    transferRate, downPct, annualRatePct, termYears,
+    transferRate, brokerRate, downPct, annualRatePct, termYears,
   };
 }
 
@@ -110,4 +114,5 @@ export function realPropertyTax(fmv: number, groupOrCode?: string, cityRate = tr
 
 export const COST_DISCLAIMER =
   "Estimates only — not legal or tax advice. Taxes use the higher of the selling price or the BIR zonal / assessor value. " +
-  "Transfer tax and real property tax vary by LGU. Consult a licensed CPA, tax lawyer, or PRC-licensed broker.";
+  "Transfer tax and real property tax vary by LGU. The broker's professional fee (commission) is customary (~5% for land), seller-paid and negotiable. " +
+  "Consult a licensed CPA, tax lawyer, or PRC-licensed broker.";

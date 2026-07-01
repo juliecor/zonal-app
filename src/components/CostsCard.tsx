@@ -76,7 +76,8 @@ export function CostsCard({ valuePerSqm, code }: { valuePerSqm: number; code?: s
       <Row label="Documentary Stamp Tax" sub="1.5% · buyer" value={money(c.dst)} />
       <Row label="Transfer Tax" sub={`${city ? "0.75%" : "0.5%"} · buyer`} value={money(c.transferTax)} />
       <Row label="Registration Fee" sub="~0.25% · buyer" value={money(c.registrationFee)} />
-      <Row label="Total taxes & fees" value={money(c.totalFees)} strong />
+      <Row label="Broker's professional fee" sub={`${Math.round(c.brokerRate * 100)}% · seller · customary`} value={money(c.brokerFee)} />
+      <Row label="Total transaction costs" value={money(c.totalFees)} strong />
       <View style={s.splitRow}>
         <Text style={s.splitT}>Buyer {money(c.buyerFees)}</Text>
         <Text style={s.splitT}>Seller {money(c.sellerFees)}</Text>
@@ -121,7 +122,7 @@ export function CostsCard({ valuePerSqm, code }: { valuePerSqm: number; code?: s
       <Row label="Real Property Tax (amilyar)" sub={`${(rpt.basicRate * 100).toFixed(0)}% + 1% SEF · ${(rpt.level * 100).toFixed(0)}% assessed`} value={`${money(rpt.total)}/yr`} />
 
       <Text style={s.note}>
-        Estimates only — not tax advice. Taxes use the higher of price or BIR zonal value; transfer tax &amp; amilyar vary by LGU. Consult a licensed CPA or PRC broker.
+        Estimates only — not tax advice. Taxes use the higher of price or BIR zonal value; transfer tax &amp; amilyar vary by LGU. The broker's professional fee (~5% for land) is seller-paid and negotiable. Consult a licensed CPA or PRC broker.
       </Text>
     </View>
   );
