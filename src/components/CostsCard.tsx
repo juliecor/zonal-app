@@ -11,6 +11,7 @@ import { useTheme, type Palette } from "@/theme/theme";
 
 const DOWN = [10, 20, 30];
 const TERMS = [10, 15, 20];
+const BROKER = [0, 3, 4, 5]; // broker's commission is negotiable — offer common presets
 
 /** Interactive Philippine cost & tax breakdown for a lot at a given zonal value. */
 export function CostsCard({ valuePerSqm, code }: { valuePerSqm: number; code?: string | null }) {
@@ -21,6 +22,7 @@ export function CostsCard({ valuePerSqm, code }: { valuePerSqm: number; code?: s
   const [rateStr, setRateStr] = useState("6.5");
   const [term, setTerm] = useState(20);
   const [city, setCity] = useState(true);
+  const [brokerPct, setBrokerPct] = useState(5);
 
   const area = Math.max(0, parseFloat(areaStr.replace(/,/g, "")) || 0);
   const rate = Math.max(0, parseFloat(rateStr) || 0);
@@ -29,11 +31,11 @@ export function CostsCard({ valuePerSqm, code }: { valuePerSqm: number; code?: s
     const price = estimatedValue(valuePerSqm, area);
     const c = computeCosts({
       price, transferRate: city ? TRANSFER_RATE_CITY : TRANSFER_RATE_PROVINCE,
-      downPct, annualRatePct: rate, termYears: term,
+      brokerRate: brokerPct / 100, downPct, annualRatePct: rate, termYears: term,
     });
     const rpt = realPropertyTax(price, code || undefined, city);
     return { c, rpt, price };
-  }, [valuePerSqm, area, city, downPct, rate, term, code]);
+  }, [valuePerSqm, area, city, brokerPct, downPct, rate, term, code]);
 
   const money = (n: number) => peso(Math.round(n));
 
@@ -76,7 +78,22 @@ export function CostsCard({ valuePerSqm, code }: { valuePerSqm: number; code?: s
       <Row label="Documentary Stamp Tax" sub="1.5% · buyer" value={money(c.dst)} />
       <Row label="Transfer Tax" sub={`${city ? "0.75%" : "0.5%"} · buyer`} value={money(c.transferTax)} />
       <Row label="Registration Fee" sub="~0.25% · buyer" value={money(c.registrationFee)} />
-      <Row label="Broker's professional fee" sub={`${Math.round(c.brokerRate * 100)}% · seller · customary`} value={money(c.brokerFee)} />
+      <View style={s.row}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.rowL}>Broker's professional fee</Text>
+          <View style={s.brokerCtl}>
+            <View style={s.toggle}>
+              {BROKER.map((b) => (
+                <Pressable key={b} onPress={() => setBrokerPct(b)} style={[s.tgBtn, brokerPct === b && s.tgOn]}>
+                  <Text style={[s.tgT, brokerPct === b && s.tgTOn]}>{b}%</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={s.brokerHint}>seller · negotiable</Text>
+          </View>
+        </View>
+        <Text style={s.rowV}>{money(c.brokerFee)}</Text>
+      </View>
       <Row label="Total transaction costs" value={money(c.totalFees)} strong />
       <View style={s.splitRow}>
         <Text style={s.splitT}>Buyer {money(c.buyerFees)}</Text>
@@ -179,6 +196,8 @@ function makeStyles(c: Palette) {
     rowVStrong: { fontSize: 15, color: c.isDark ? c.goldLite : c.navy },
     splitRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 6 },
     splitT: { fontSize: 10.5, color: c.slate, fontWeight: "600" },
+    brokerCtl: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6 },
+    brokerHint: { fontSize: 9.5, color: c.slate, fontWeight: "700", letterSpacing: 0.3, textTransform: "uppercase" },
 
     chipRow: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 9 },
     chipLbl: { fontSize: 11, color: c.slate, fontWeight: "700", width: 38 },
