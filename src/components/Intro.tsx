@@ -13,7 +13,7 @@ const WORDMARK = require("../../assets/images/zonalvalue-wordmark.png");
 const WORD_RATIO = 1793 / 488; // ≈ 3.67
 const INK_LEN = 84000;         // total stroke length of PH_PATH (potrace units)
 
-const BLUE = "#155EEF", BLUE_SOFT = "#bcd2fb", RED = "#E53935", NAVY = "#0f172a", SLATE = "#64748B";
+const BLUE = "#155EEF", BLUE_SOFT = "#bcd2fb", RED = "#E53935", NAVY = "#0f172a";
 
 const PINS = [
   { fx: 0.45, fy: 0.15, label: "₱15k" },
@@ -58,7 +58,6 @@ export function Intro({ onDone }: { onDone: () => void }) {
   const grpO = useSharedValue(0);       // logo fade-in
   const grpS = useSharedValue(0.9);     // logo settle
   const reveal = useSharedValue(0);     // logo draws in left→right
-  const byO = useSharedValue(0);        // "by Filipino Homes"
   const rootO = useSharedValue(1);      // whole-screen fade to app
 
   const [k, setK] = useState<number | null>(null); // motion factor; gates the pins
@@ -78,7 +77,6 @@ export function Intro({ onDone }: { onDone: () => void }) {
       grpO.value = withDelay(2600 * kk, withTiming(1, { duration: 420 * kk }));
       grpS.value = withDelay(2600 * kk, withTiming(1, { duration: 560 * kk, easing: Easing.out(Easing.back(1.3)) }));
       reveal.value = withDelay(2720 * kk, withTiming(1, { duration: 820 * kk, easing: Easing.inOut(Easing.cubic) }));
-      byO.value = withDelay(3450 * kk, withTiming(1, { duration: 420 * kk, easing: E }));
       // 3) hand off to the app
       rootO.value = withDelay(4050 * kk, withTiming(0, { duration: 420 }, (fin) => { if (fin) runOnJS(finish)(); }));
     };
@@ -95,7 +93,6 @@ export function Intro({ onDone }: { onDone: () => void }) {
   const fillProps = useAnimatedProps(() => ({ fillOpacity: fill.value }));
   const grpStyle = useAnimatedStyle(() => ({ opacity: grpO.value, transform: [{ scale: grpS.value }] }));
   const clipStyle = useAnimatedStyle(() => ({ width: wordW * reveal.value }));
-  const byStyle = useAnimatedStyle(() => ({ opacity: byO.value }));
 
   return (
     <Animated.View style={[styles.root, rootStyle]}>
@@ -131,7 +128,6 @@ export function Intro({ onDone }: { onDone: () => void }) {
           </Animated.View>
         </View>
       </Animated.View>
-      <Animated.Text style={[styles.by, byStyle]}>BY FILIPINO HOMES</Animated.Text>
 
       <Pressable style={StyleSheet.absoluteFill} onPress={finish} />
     </Animated.View>
@@ -141,7 +137,6 @@ export function Intro({ onDone }: { onDone: () => void }) {
 const styles = StyleSheet.create({
   root: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center" },
   center: { alignItems: "center", justifyContent: "center" },
-  by: { marginTop: 20, color: SLATE, fontSize: 11.5, letterSpacing: 3, fontWeight: "700" },
   pinWrap: { position: "absolute", width: 84, alignItems: "center" },
   pinCard: {
     flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#fff", borderRadius: 11,
