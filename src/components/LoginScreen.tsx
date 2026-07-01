@@ -1,9 +1,12 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from "react-native";
-import Animated, { useAnimatedKeyboard, useAnimatedStyle } from "react-native-reanimated";
+import Animated, {
+  Easing, useAnimatedKeyboard, useAnimatedStyle, useSharedValue,
+  withDelay, withRepeat, withSequence, withTiming,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,6 +17,9 @@ import { useAuth } from "@/lib/auth";
 import { authResendOtp } from "@/lib/api";
 import { useTheme, type Palette } from "@/theme/theme";
 import { SERIF } from "@/theme/zonal";
+
+const MASCOT = require("../../assets/images/mascot-wave.png");
+const MASCOT_RATIO = 1165 / 839; // h/w
 
 type Mode = "signin" | "register" | "otpEmail" | "otpCode" | "verify";
 
@@ -49,7 +55,7 @@ export function LoginScreen() {
 
   // Android-safe keyboard handling: a keyboard-sized spacer gives scroll room, and we
   // scroll the focused field into the upper third so the keyboard never covers it.
-  const { height: screenH } = useWindowDimensions();
+  const { height: screenH, width } = useWindowDimensions();
   const scrollRef = useRef<ScrollView>(null);
   const scrollY = useRef(0);
   const codeRef = useRef<TextInput>(null);
@@ -63,6 +69,35 @@ export function LoginScreen() {
       });
     }, 90);
   };
+
+  // Waving mascot greeter — pops in and waves hello, then floats gently. It collapses
+  // out of the way when the keyboard opens so it never crowds the form.
+  const mascotW = Math.min(width * 0.3, 122);
+  const mascotH = mascotW * MASCOT_RATIO;
+  const entry = useSharedValue(0);
+  const wave = useSharedValue(0);
+  const bob = useSharedValue(0);
+  useEffect(() => {
+    const E = Easing.out(Easing.cubic);
+    entry.value = withTiming(1, { duration: 520, easing: E });
+    wave.value = withDelay(520, withRepeat(withSequence(
+      withTiming(1, { duration: 190, easing: E }),
+      withTiming(-1, { duration: 380, easing: E }),
+      withTiming(0, { duration: 190, easing: E }),
+    ), 3, false));
+    bob.value = withRepeat(withSequence(
+      withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.quad) }),
+      withTiming(0, { duration: 1500, easing: Easing.inOut(Easing.quad) }),
+    ), -1, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const mascotBox = useAnimatedStyle(() => {
+    const p = Math.min(1, keyboard.height.value / 140); // 0 closed → 1 keyboard open
+    return { height: (mascotH + 16) * (1 - p), opacity: (1 - p) * entry.value };
+  });
+  const mascotInner = useAnimatedStyle(() => ({
+    transform: [{ translateY: bob.value * -6 }, { scale: 0.72 + 0.28 * entry.value }, { rotate: `${wave.value * 7}deg` }],
+  }));
 
   const [mode, setMode] = useState<Mode>("signin");
   const [busy, setBusy] = useState(false);
@@ -144,6 +179,13 @@ export function LoginScreen() {
           onScroll={(e) => { scrollY.current = e.nativeEvent.contentOffset.y; }}
           scrollEventThrottle={16}
         >
+          {/* waving mascot greeter */}
+          <Animated.View style={[s.mascotBox, mascotBox]}>
+            <Animated.View style={mascotInner}>
+              <Image source={MASCOT} style={{ width: mascotW, height: mascotH }} contentFit="contain" />
+            </Animated.View>
+          </Animated.View>
+
           {/* brand */}
           <View style={s.hero}>
             <Image source={require("../../assets/images/zonalvalue-wordmark.png")} style={s.wordmark} contentFit="contain" />
@@ -255,7 +297,8 @@ function makeStyles(c: Palette) {
     root: { flex: 1, backgroundColor: c.paper },
     scroll: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 26, paddingVertical: 36, maxWidth: 460, width: "100%", alignSelf: "center" },
 
-    hero: { alignItems: "center", marginBottom: 30 },
+    mascotBox: { alignItems: "center", justifyContent: "flex-end", overflow: "hidden" },
+    hero: { alignItems: "center", marginBottom: 26 },
     wordmark: { width: 232, height: 64 },
     tagline: { color: c.slate, fontSize: 12.5, marginTop: 8 },
 
