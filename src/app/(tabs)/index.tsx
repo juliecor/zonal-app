@@ -23,6 +23,8 @@ import { useStore } from "@/lib/store";
 import { ClassChip } from "@/components/ClassChip";
 import { HazardChips } from "@/components/HazardChips";
 import { LandUseToggle } from "@/components/LandUseToggle";
+import { NoTokensScreen } from "@/components/NoTokensScreen";
+import { RequestCreditsModal } from "@/components/RequestCreditsModal";
 import { useTheme, type Palette } from "@/theme/theme";
 import { peso, pesoK, SERIF, titleCase } from "@/theme/zonal";
 
@@ -66,8 +68,12 @@ export default function MapScreen() {
   const [haz, setHaz] = useState<HazardProfile | null>(null);
   const [busy, setBusy] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [creditsOpen, setCreditsOpen] = useState(false);
   const saved = useStore(savedStore);
   const recents = useStore(recentsStore);
+
+  // Show the "No Tokens Left" wall when a client's search credits run out (admins are unlimited).
+  const outOfTokens = !!user && user.role !== "admin" && typeof user.token_balance === "number" && user.token_balance <= 0;
 
   const center = useRef({ lat: 10.3157, lon: 123.8854 });
   const pinsRef = useRef<any[]>([]);
@@ -403,6 +409,11 @@ export default function MapScreen() {
           </Pressable>
         </Animated.View>
       )}
+
+      {outOfTokens && (
+        <NoTokensScreen balance={user?.token_balance ?? 0} onGetTokens={() => setCreditsOpen(true)} />
+      )}
+      <RequestCreditsModal visible={creditsOpen} onClose={() => setCreditsOpen(false)} />
     </View>
   );
 }
