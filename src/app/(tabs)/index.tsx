@@ -73,7 +73,8 @@ export default function MapScreen() {
   const recents = useStore(recentsStore);
 
   // Show the "No Tokens Left" wall when a client's search credits run out (admins are unlimited).
-  const outOfTokens = !!user && user.role !== "admin" && typeof user.token_balance === "number" && user.token_balance <= 0;
+  const isAdmin = user?.role === "admin";
+  const outOfTokens = !!user && !isAdmin && typeof user.token_balance === "number" && user.token_balance <= 0;
 
   const center = useRef({ lat: 10.3157, lon: 123.8854 });
   const pinsRef = useRef<any[]>([]);
@@ -269,6 +270,10 @@ export default function MapScreen() {
               </Pressable>
             )}
           </View>
+          <Pressable style={st.credits} onPress={() => setCreditsOpen(true)} hitSlop={6}>
+            <Ionicons name="server" size={12} color={chrome} />
+            <Text style={st.creditsT}>{isAdmin ? "∞" : (user?.token_balance ?? 0)}</Text>
+          </Pressable>
           <Pressable style={st.iconBtn} onPress={() => router.push("/saved" as any)}>
             <Ionicons name="bookmark" size={17} color={chrome} />
             {saved.length > 0 && <View style={st.badge}><Text style={st.badgeT}>{saved.length}</Text></View>}
@@ -448,6 +453,12 @@ function makeStyles(c: Palette) {
       backgroundColor: frost, borderWidth: 1, borderColor: "rgba(21,94,239,0.3)",
       shadowColor: c.shadow, shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5,
     },
+    credits: {
+      flexDirection: "row", alignItems: "center", gap: 4, height: 38, paddingHorizontal: 11, borderRadius: 19,
+      backgroundColor: frost, borderWidth: 1, borderColor: "rgba(21,94,239,0.3)",
+      shadowColor: c.shadow, shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 5,
+    },
+    creditsT: { fontSize: 12.5, fontWeight: "800", color: c.isDark ? c.goldLite : c.navy },
     badge: { position: "absolute", top: -3, right: -3, minWidth: 17, height: 17, borderRadius: 9, backgroundColor: c.gold, alignItems: "center", justifyContent: "center", paddingHorizontal: 4, borderWidth: 1.5, borderColor: c.isDark ? c.card : "#fff" },
     badgeT: { fontSize: 9.5, fontWeight: "800", color: "#ffffff" },
     recH: { fontSize: 8.5, letterSpacing: 1.2, color: c.slate, fontWeight: "800", paddingHorizontal: 14, paddingTop: 10, paddingBottom: 2 },
