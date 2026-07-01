@@ -54,6 +54,14 @@
           "photosPermission": "Allow zonalvalue.ph to access your photos to set a profile picture.",
           "cameraPermission": "Allow zonalvalue.ph to use the camera to take a profile picture."
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow zonalvalue.ph to use your location to show zonal values near you and center the map. Location is used only while the app is open.",
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": false
+        }
       ]
     ],
     "experiments": {

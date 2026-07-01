@@ -4,6 +4,7 @@ import * as LocalAuthentication from "expo-local-authentication";
 
 import {
   authLogin, authLogout, authMe, authRegister, authRequestLoginOtp, authVerifyLoginOtp, authVerifyOtp,
+  deleteAccount as apiDeleteAccount,
   type AuthResponse, type AuthUser, type RegisterPayload, type RegisterResult,
 } from "@/lib/api";
 
@@ -20,6 +21,7 @@ interface AuthState {
   requestLoginOtp: (email: string) => Promise<{ user_id: number; resend_cooldown?: number }>;
   verifyLoginOtp: (userId: number, code: string) => Promise<void>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>; // permanently delete the account + data, then sign out
   refresh: () => Promise<void>;
   applyUser: (u: AuthUser) => void;   // update the cached user immediately (after editing profile)
   // Biometric app-lock (Face ID / fingerprint)
@@ -93,6 +95,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     async signOut() {
       if (token) await authLogout(token);
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+      setToken(null);
+      setUser(null);
+      setLocked(false);
+    },
+    async deleteAccount() {
+      if (token) await apiDeleteAccount(token); // server wipes the account + data; throws on failure
       await SecureStore.deleteItemAsync(TOKEN_KEY);
       setToken(null);
       setUser(null);

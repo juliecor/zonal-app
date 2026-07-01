@@ -421,6 +421,18 @@ export async function deleteAvatar(token: string): Promise<AuthUser> {
   return (j?.user ?? j) as AuthUser;
 }
 
+/** Permanently delete the signed-in account and all associated data (Google Play requirement). */
+export async function deleteAccount(token: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/account`, {
+    method: "DELETE",
+    headers: { Accept: "application/json", Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const j = await res.json().catch(() => null);
+    throw new Error(j?.message || `Couldn't delete your account (${res.status}).`);
+  }
+}
+
 /* ──────────────────── Search-credit (token) requests ──────────────────── */
 
 export interface TokenRequest {

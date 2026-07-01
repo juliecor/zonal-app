@@ -20,7 +20,7 @@ import { ShareCard } from "@/components/ShareCard";
 import { shareViewAsImage } from "@/lib/shareImage";
 
 interface Info { lat: number; lon: number; value: number | null; code: string | null; name: string; addr: string }
-type Phase = "idle" | "locating" | "ready" | "denied" | "error";
+type Phase = "idle" | "intro" | "locating" | "ready" | "denied" | "error";
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 export default function NearbyScreen() {
@@ -37,7 +37,16 @@ export default function NearbyScreen() {
   const didInit = useRef(false);
 
   useEffect(() => {
-    if (!didInit.current) { didInit.current = true; locate(); }
+    if (didInit.current) return;
+    didInit.current = true;
+    // If location was already granted, go straight to it; otherwise explain WHY before
+    // triggering the OS prompt (Google Play prominent-disclosure expectation).
+    (async () => {
+      try {
+        const perm = await Location.getForegroundPermissionsAsync();
+        if (perm.granted) locate(); else setPhase("intro");
+      } catch { setPhase("intro"); }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -115,7 +124,14 @@ export default function NearbyScreen() {
         </View>
       </SafeAreaView>
 
-      {phase === "locating" ? (
+      {phase === "intro" ? (
+        <View style={s.center}>
+          <View style={s.bigIcon}><Ionicons name="navigate" size={26} color={c.goldDeep} /></View>
+          <Text style={s.cTitle}>See values near you</Text>
+          <Text style={s.dim}>zonalvalue.ph uses your location <Text style={{ fontWeight: "800" }}>only while the app is open</Text> — to show the BIR zonal value where you&apos;re standing and nearby lots. We never track you in the background.</Text>
+          <Pressable onPress={locate} style={s.cta}><Ionicons name="navigate" size={16} color="#ffffff" /><Text style={s.ctaT}>Enable location</Text></Pressable>
+        </View>
+      ) : phase === "locating" ? (
         <View style={s.center}>
           <View style={s.bigIcon}><Ionicons name="navigate" size={26} color={c.goldDeep} /></View>
           <ActivityIndicator color={c.gold} style={{ marginTop: 14 }} />

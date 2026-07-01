@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import * as LocalAuthentication from "expo-local-authentication";
 import { Image } from "expo-image";
@@ -36,7 +36,7 @@ function NightToggle() {
 }
 
 export default function ProfileScreen() {
-  const { user, loading, signOut, token, biometricEnabled, enableBiometric, disableBiometric } = useAuth();
+  const { user, loading, signOut, deleteAccount, token, biometricEnabled, enableBiometric, disableBiometric } = useAuth();
   const { c, isDark } = useTheme();
   const s = useMemo(() => makeStyles(c), [c]);
   const [creditsOpen, setCreditsOpen] = useState(false);
@@ -44,6 +44,29 @@ export default function ProfileScreen() {
   const [pending, setPending] = useState(0);
   const [bioSupported, setBioSupported] = useState(false);
   const [bioLabel, setBioLabel] = useState("Biometric");
+  const [deleting, setDeleting] = useState(false);
+
+  function confirmDeleteAccount() {
+    Alert.alert(
+      "Delete account?",
+      "This permanently deletes your account, profile photo, saved lots, and search history. This can't be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete", style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await deleteAccount(); // clears the session on success → returns to the login screen
+            } catch (e: any) {
+              setDeleting(false);
+              Alert.alert("Couldn't delete account", e?.message || "Please try again.");
+            }
+          },
+        },
+      ],
+    );
+  }
 
   // Does this device have Face ID / fingerprint set up?
   useEffect(() => {
@@ -181,6 +204,23 @@ export default function ProfileScreen() {
           <Ionicons name="log-out-outline" size={17} color={c.red} />
           <Text style={s.signoutT}>Sign out</Text>
         </Pressable>
+
+        <Pressable onPress={confirmDeleteAccount} disabled={deleting} style={s.deleteBtn}>
+          {deleting
+            ? <ActivityIndicator size="small" color={c.red} />
+            : <Ionicons name="trash-outline" size={15} color={c.red} />}
+          <Text style={s.deleteT}>{deleting ? "Deleting…" : "Delete account"}</Text>
+        </Pressable>
+
+        <View style={s.legalRow}>
+          <Pressable onPress={() => Linking.openURL("https://zonalvalue.ph/privacy")} hitSlop={8}>
+            <Text style={s.legalLink}>Privacy Policy</Text>
+          </Pressable>
+          <Text style={s.legalDot}>·</Text>
+          <Pressable onPress={() => Linking.openURL("https://zonalvalue.ph/account-deletion")} hitSlop={8}>
+            <Text style={s.legalLink}>How to delete your data</Text>
+          </Pressable>
+        </View>
       </ScrollView>
 
       <RequestCreditsModal visible={creditsOpen} onClose={() => setCreditsOpen(false)} />
@@ -231,5 +271,10 @@ function makeStyles(c: Palette) {
     badgeT: { color: "#fff", fontSize: 11.5, fontWeight: "800" },
     signout: { marginTop: 12, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: c.isDark ? "rgba(240,82,74,0.4)" : "#f6c2c2", backgroundColor: c.isDark ? "rgba(240,82,74,0.12)" : "#fde7e7", borderRadius: 13, paddingVertical: 13 },
     signoutT: { color: c.red, fontWeight: "800", fontSize: 13.5 },
+    deleteBtn: { marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, paddingVertical: 11 },
+    deleteT: { color: c.red, fontWeight: "700", fontSize: 13 },
+    legalRow: { marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, flexWrap: "wrap" },
+    legalLink: { color: c.slate, fontSize: 12, fontWeight: "600", textDecorationLine: "underline" },
+    legalDot: { color: c.slate, fontSize: 12 },
   });
 }

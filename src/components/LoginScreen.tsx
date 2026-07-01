@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  ActivityIndicator, Platform, Pressable, ScrollView,
+  ActivityIndicator, Linking, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from "react-native";
 import Animated, {
@@ -281,6 +281,9 @@ export function LoginScreen() {
           )}
 
           <Text style={s.legal}>© zonalvalue.ph</Text>
+          <Pressable onPress={() => Linking.openURL("https://zonalvalue.ph/privacy")} hitSlop={8} style={s.privacyBtn}>
+            <Text style={s.privacyLink}>Privacy Policy</Text>
+          </Pressable>
           <Animated.View style={spacerStyle} />
         </ScrollView>
       </SafeAreaView>
@@ -327,5 +330,7 @@ function makeStyles(c: Palette) {
     footLink: { color: link, fontWeight: "800" },
 
     legal: { textAlign: "center", color: c.slate, opacity: 0.7, fontSize: 10.5, marginTop: 26, letterSpacing: 0.4 },
+    privacyBtn: { alignSelf: "center", marginTop: 8, paddingVertical: 4 },
+    privacyLink: { color: link, fontSize: 12, fontWeight: "600", textDecorationLine: "underline" },
   });
 }
